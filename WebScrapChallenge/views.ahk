@@ -4,8 +4,10 @@ HelloWorld(ByRef req, ByRef res) {
 }
 
 HomePage(ByRef req, ByRef res) {
-    vars := {"test":"ttttttttttttt"}
-    HTMLBuilder("test_page.html",vars)
-    res.SetBodyText("Hello Home")
+    vars := {"title":"tttttttttitle"}
+    template_path := A_ScriptDir . "\WebScrapChallenge\views\"
+    body := HTMLBuilder(template_path . "test_page.html",vars)
+    ; Msgbox,% body
+    res.SetBodyText(body)
     res.status := 200
 }

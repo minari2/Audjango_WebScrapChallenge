@@ -1,12 +1,9 @@
 HTMLBuilder(HTMLFilePath, variables)
 {
-    ; Msgbox,% WebScrapChallengePath
     page := ""
-    FileRead, readHTML, HTMLFilePath
-    
-    ; find > {% base "" %}
-    find_base_file_path := RegExMatch(readHTML, "{% base ""(.*)"" %}", base)
-    ; Msgbox,% base1
+    FileRead, readHTML, *t %HTMLFilePath%
+    RegExMatch(readHTML, "{% base ""(.*)"" %}", base)
+    ; build page
     if base1
         if !FileExist(baseTemplateFolder . base1)
         {
@@ -14,8 +11,50 @@ HTMLBuilder(HTMLFilePath, variables)
         }
         else
         {
-            FileRead, page, % baseTemplateFolder . base1
+            FileRead, page, % "*t " . baseTemplateFolder . base1
+            page_backup := page
+            loop, parse, page_backup, `n, `r
+            {
+                if RegExMatch(A_LoopField, "{% block (.*) %}", blocks)
+                {
+                    tt := RegExMatch(readHTML, "{% block " . blocks1 . " %}(.*){% endblock " . blocks1 . " %}", found)
+                    if found1
+                    {
+                        page := Regexreplace(page, "{% block " . blocks1 . " %}(.*){% endblock " . blocks1 . " %}", found1)    
+                    }
+                    else
+                    {
+                        page := Regexreplace(page, "{% block " . blocks1 . " %}(.*){% endblock " . blocks1 . " %}", "")    
+                    }
+                }
+                
+            }
         }
+    else
+    {
+        page := readHTML
+    }
+
+    ; Msgbox, % page
+  
+    loop, parse, page, `n, `r
+    {
+        if RegExMatch(A_LoopField, "{{ (.*?) }}", var)
+        {
+            if(var1)
+            {   
+                if variables[var1]
+                {    
+                    page := Regexreplace(page, "{{ " . var1 . " }}", variables[var1])
+                }
+                else
+                {
+                    page := Regexreplace(page, "{{ " . var1 . " }}", "")
+                }
+            }
+        }
+    }
     
-    return 
+    
+    return page
 }
