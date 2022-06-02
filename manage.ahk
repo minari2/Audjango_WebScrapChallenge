@@ -2,6 +2,7 @@
 #SingleInstance, force
 SetBatchLines, -1
 ; #Include AHKhttp.ahk
+#Include %A_SCriptDir%\MyFileInstallScript.ahk
 #include <AHKhttp>
 #include <AHKsock>
 #include <helper>
