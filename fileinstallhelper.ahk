@@ -20,7 +20,7 @@ loop, Files, %A_SCriptDir%\*.*, FR ; R = recurse into folders
         subfolder.Push(sub_dir_path)
         FileAppend, % "FileCreateDir, `%A_ScriptDir`%" . sub_dir_path . "`n", MyFileInstallScript.ahk
     }
-    FileAppend, % "FileInstall, " A_LoopFileFullPath ", `%A_ScriptDir`%" . sub_dir_path . A_LoopFileName "`n", MyFileInstallScript.ahk
+    FileAppend, % "FileInstall, " A_LoopFileFullPath ", `%A_ScriptDir`%" . sub_dir_path . A_LoopFileName ", 1`n", MyFileInstallScript.ahk
 }
 Return
 
