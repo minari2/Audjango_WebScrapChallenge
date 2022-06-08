@@ -1,12 +1,16 @@
 ; when deploy,
 ; first run this script
 ; and it can compile to binary file with needed files.
+FileDelete, MyFileInstallScript.ahk
 
 subfolder := Array()
 loop, Files, %A_SCriptDir%\*.*, FR ; R = recurse into folders
 {
     SplitPath, A_LoopFileFullPath, oFileName, oDirName, oEXT, oNameNoExt
     if (oEXT = "ahk")
+        continue
+
+    if (oEXT = "exe")
         continue
 
     if(instr(oDirName, "lib") or instr(oDirName, "AHKhttp") or instr(oDirName, ".git"))

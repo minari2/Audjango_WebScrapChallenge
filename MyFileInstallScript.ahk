@@ -2,7 +2,6 @@ FileCreateDir, %A_ScriptDir%\
 FileInstall, C:\Users\goglk\Desktop\AuDjango\.gitignore, %A_ScriptDir%\.gitignore, 1
 FileInstall, C:\Users\goglk\Desktop\AuDjango\LICENSE, %A_ScriptDir%\LICENSE, 1
 FileInstall, C:\Users\goglk\Desktop\AuDjango\logo.png, %A_ScriptDir%\logo.png, 1
-FileInstall, C:\Users\goglk\Desktop\AuDjango\manage.exe, %A_ScriptDir%\manage.exe, 1
 FileInstall, C:\Users\goglk\Desktop\AuDjango\mime.types, %A_ScriptDir%\mime.types, 1
 FileCreateDir, %A_ScriptDir%\templates\
 FileInstall, C:\Users\goglk\Desktop\AuDjango\templates\base.html, %A_ScriptDir%\templates\base.html, 1
