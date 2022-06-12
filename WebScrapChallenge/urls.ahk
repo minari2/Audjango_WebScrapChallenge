@@ -7,3 +7,4 @@ urls["/"] := Func("HomePage")
 
 ; Step1.
 urls["/step1/1"] := Func("Step1_Page_1")
+urls["/step1/2"] := Func("Step1_Page_2")

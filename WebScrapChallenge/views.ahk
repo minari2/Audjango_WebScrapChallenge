@@ -28,3 +28,14 @@ Step1_Page_1(ByRef req, ByRef res) {
     res.SetBodyText(body)
     res.status := 200
 }
+
+Step1_Page_2(ByRef req, ByRef res) {
+    Random, rand, 1, 4
+    strings := ["Nadure", "Tadure", "Yadure", "Yodure"]
+    
+    vars := {"Answer": strings[rand]}
+    template_path := A_ScriptDir . "\WebScrapChallenge\views\Step1\"
+    body := HTMLBuilder(template_path . "page2.html", vars)
+    res.SetBodyText(body)
+    res.status := 200
+}
