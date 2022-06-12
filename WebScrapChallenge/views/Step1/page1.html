@@ -1,0 +1,74 @@
+{% base "base.html" %}
+
+{% block css %}
+{% endblock css%}
+
+{% block body %}
+<h1 class="visually-hidden">Step 1-1.</h1>
+<h2 class="visually-hidden">Get Element.</h2>
+<div class="b-example-divider"></div>
+
+<main>
+    <div class="container px-4 py-5">
+        <h2 class="pb-2 border-bottom">Nadure's WebScraping Challenge WebSite.</h2>
+        <h3 class="pb-2">Step 1</h3>
+        <p class="pb-2">Click all at the elements below. and next button will be shown.</p>
+        
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+            
+        <div class="col card">
+            <h5 class="card-header">Get Element By ID</h5>
+            <div class="card-body">
+            <h5 class="card-title">You need to trigger onclick event using the GetElementById.</h5>
+            <p class="card-text">document.getElementById("This_is_button_ID")</p>
+            <a onclikck="javascript:void(0);" onclick="alert('asdf');" class="btn btn-primary" Id="This_is_button_ID">Check</a>
+            </div>
+        </div>
+
+        <div class="col card">
+            <h5 class="card-header">Get Elements By Class Name</h5>
+            <div class="card-body">
+            <h5 class="card-title">You need to trigger onclick event using the GetElementsByClassName</h5>
+            <p class="card-text">document.getElementsByClassName("This_is_button_ClassName")</p>
+            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h5 class="card-header">Get Elements By TagName</h5>
+            <div class="card-body">
+            <h5 class="card-title">You need to trigger onclick event using the GetElementsByTagName</h5>
+            <p class="card-text">document.GetElementsByTagName("button")</p>
+            <button type="button" class="btn btn-primary">Check</button>
+            <button type="button" class="btn btn-primary">Check</button>
+            <button type="button" class="btn btn-primary">Check</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h5 class="card-header">Get Element With QuerySelector</h5>
+            <div class="card-body">
+            <h5 class="card-title">You need to trigger onclick event using the QuerySelector.</h5>
+            <p class="card-text">document.querySelector("body > main > div > div:nth-child(7) > div > button");</p>
+            <p class="card-text">it's the master key for capturing element. but it can be changed easily when site update.</p>
+            <button type="button" class="btn btn-primary" onclick="alert('asdfasdf');">Check</button>
+            </div>
+        </div>
+
+        <div class="b-example-divider"></div>
+        <div class="card">
+            <h5 class="card-header">Next Button</h5>
+            <div class="card-body">
+            <button type="button" class="btn btn-primary" onclick="alert('asdfasdf');">Next</button>
+            </div>
+        </div>
+
+        </div>
+
+    </div>
+</main>
+
+{% endblock body %}
