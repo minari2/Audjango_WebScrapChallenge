@@ -4,7 +4,7 @@ SetWorkingDir, %A_ScriptDir%
 
 FileRead, currentVersion, %A_ScriptDir%\version
 latest_version := getCurrentVersion()
-
+; Msgbox,% latest_version
 version_array := []
 version_array.push(currentVersion, latest_version)
 Latest := VersionCompare(version_array[1], version_array[2])
@@ -21,6 +21,7 @@ file.Write(version)
 file.close()
 
 setVersion(version)
+; Msgbox,% version
 
 return
 
@@ -65,12 +66,14 @@ getCurrentVersion()
     obj.Send()
     obj.WaitForResponse()
     response := obj.responseText
-    response := StrReplace(response, "`r")
-    response := StrReplace(response, "`n")
-    needle := "/goglgo/Audjango_WebScrapChallenge/releases/download/(?<value>.*?)/manage.exe"
-    ttt:= RegExMatch(response, needle, _)
-    
-    return _value
+    ; response := StrReplace(response, "`r")
+    ; response := StrReplace(response, "`n")
+	needle := "(/goglgo/Audjango_WebScrapChallenge/releases/download/)(.*?)(?=/manage.exe)"
+    ; needle := "/goglgo/Audjango_WebScrapChallenge/releases/download/(?<value>.*?)/manage.exe"
+    ; ttt:= RegExMatch(response, needle, _)
+	ttt:= RegExMatch(response, needle, result)
+	; FileAppend, %response%, test.html
+    return result2
 }
 
 VersionCompare(version1, version2)

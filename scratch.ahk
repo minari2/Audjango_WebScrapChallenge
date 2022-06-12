@@ -1,3 +1,11 @@
+
+TestString := "me  This is a test apple."
+
+regexmatch(teststring, "(me)(.*?)(?=apple)", results)
+msgbox, % results2
+
+return
+
 file := Fileopen("version", "w")
 file.Write("0.0.0.0.1")
 file.close()
