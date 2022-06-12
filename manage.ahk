@@ -8,6 +8,12 @@ SetBatchLines, -1
 #include <helper>
 #Include %A_ScriptDir%\config\settings.ahk
 
+; 
+; When Compile for release > 
+; 1. Launch fileinstallhelper.ahk
+; 2. Compile
+; 
+
 ; paths := {}
 ; paths["/"] := Func("HelloWorld")
 ; paths["/logo"] := Func("Logo")
