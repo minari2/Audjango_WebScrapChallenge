@@ -75,12 +75,6 @@ getCurrentVersion()
 
 VersionCompare(version1, version2)
 {
-    ; tt := []
-    ; tt.push(Version1, Version2)
-    ; Latest := VersionCompare(tt[1], tt[2])
-    ; if not Latest
-    ;     Msgbox,111
-    ; Msgbox,% tt[Latest]
 	StringSplit, verA, version1, .
 	StringSplit, verB, version2, .
 	Loop, % (verA0> verB0 ? verA0 : verB0)

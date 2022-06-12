@@ -3,10 +3,19 @@ HelloWorld(ByRef req, ByRef res) {
     res.status := 200
 }
 
-HomePage(ByRef req, ByRef res) {
+TestPage(ByRef req, ByRef res) {
     vars := {"title":"tttttttttitle"}
     template_path := A_ScriptDir . "\WebScrapChallenge\views\"
     body := HTMLBuilder(template_path . "test_page.html",vars)
+    ; Msgbox,% body
+    res.SetBodyText(body)
+    res.status := 200
+}
+
+HomePage(ByRef req, ByRef res) {
+    vars := {"title":"tttttttttitle"}
+    template_path := A_ScriptDir . "\WebScrapChallenge\views\"
+    body := HTMLBuilder(template_path . "index.html",vars)
     ; Msgbox,% body
     res.SetBodyText(body)
     res.status := 200

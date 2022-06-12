@@ -2,4 +2,5 @@
 urls := {}
 
 urls["/applicationURLTest"] := Func("HelloWorld")
-urls["/test2"] := Func("HomePage")
+urls["/test2"] := Func("TestPage")
+urls["/"] := Func("HomePage")
