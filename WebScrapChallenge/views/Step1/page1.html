@@ -13,6 +13,10 @@
         <h2 class="pb-2 border-bottom">Nadure's WebScraping Challenge WebSite.</h2>
         <h3 class="pb-2">Step 1</h3>
         <p class="pb-2">Click all at the elements below. and next button will be shown.</p>
+
+        <div class="progress mb-3">
+            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuemin="0" aria-valuemax="100" id="progressbar">0%</div>
+        </div>
         
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
             
@@ -21,7 +25,7 @@
             <div class="card-body">
             <h5 class="card-title">You need to trigger onclick event using the GetElementById.</h5>
             <p class="card-text">document.getElementById("This_is_button_ID")</p>
-            <a onclikck="javascript:void(0);" onclick="alert('asdf');" class="btn btn-primary" Id="This_is_button_ID">Check</a>
+            <a href="javascript:void(0);" onclick="CheckIdButton();" class="btn btn-primary" Id="This_is_button_ID">Check</a>
             </div>
         </div>
 
@@ -30,10 +34,10 @@
             <div class="card-body">
             <h5 class="card-title">You need to trigger onclick event using the GetElementsByClassName</h5>
             <p class="card-text">document.getElementsByClassName("This_is_button_ClassName")</p>
-            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
-            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
-            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
-            <a href="#" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="javascript:void(0);" onclick="checkClassButton(1)" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="javascript:void(0);" onclick="checkClassButton(2)" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="javascript:void(0);" onclick="checkClassButton(3)" class="btn btn-primary This_is_button_ClassName">Check</a>
+            <a href="javascript:void(0);" onclick="checkClassButton(4)" class="btn btn-primary This_is_button_ClassName">Check</a>
             </div>
         </div>
 
@@ -42,9 +46,9 @@
             <div class="card-body">
             <h5 class="card-title">You need to trigger onclick event using the GetElementsByTagName</h5>
             <p class="card-text">document.GetElementsByTagName("button")</p>
-            <button type="button" class="btn btn-primary">Check</button>
-            <button type="button" class="btn btn-primary">Check</button>
-            <button type="button" class="btn btn-primary">Check</button>
+            <button type="button" class="btn btn-primary" onclick="CheckTagNameButton(1)">Check</button>
+            <button type="button" class="btn btn-primary" onclick="CheckTagNameButton(2)">Check</button>
+            <button type="button" class="btn btn-primary" onclick="CheckTagNameButton(3)">Check</button>
             </div>
         </div>
 
@@ -54,7 +58,7 @@
             <h5 class="card-title">You need to trigger onclick event using the QuerySelector.</h5>
             <p class="card-text">document.querySelector("body > main > div > div:nth-child(7) > div > button");</p>
             <p class="card-text">it's the master key for capturing element. but it can be changed easily when site update.</p>
-            <button type="button" class="btn btn-primary" onclick="alert('asdfasdf');">Check</button>
+            <button type="button" class="btn btn-primary" onclick="CheckIdQueryselector();">Check</button>
             </div>
         </div>
 
@@ -62,13 +66,96 @@
         <div class="card">
             <h5 class="card-header">Next Button</h5>
             <div class="card-body">
-            <button type="button" class="btn btn-primary" onclick="alert('asdfasdf');">Next</button>
-            </div>
-        </div>
 
+            <a href="/step1/2" class="btn btn-primary disabled" id="nextBtnID">Next</a>
         </div>
+        
+        </div>
+        
 
     </div>
 </main>
 
 {% endblock body %}
+
+{% block script %}
+<script>
+    var countNumBtn = document.getElementsByClassName("btn").length - 1
+    var iDButtonCheck = false
+    var querySelectorButtonCheck = false
+    var classButtonCheck = [ false, false, false, false ]
+    var tagNameButtonCheck = [ false, false, false ]
+
+    function setProgressBarValue()
+    {
+        var count = 0
+        if (iDButtonCheck == true)
+        {
+            count++
+        }
+
+        if (querySelectorButtonCheck == true)
+        {
+            count++
+        }
+
+        classButtonCheck.forEach(function(item, index, array){
+            // console.log(item)
+            if(item == true)
+            {
+                count++
+            }
+        })
+
+        tagNameButtonCheck.forEach(function(item, index, array){
+            // console.log(item)
+            if(item == true)
+            {
+                count++
+            }
+        })
+
+        var percentage = (count / countNumBtn * 100).toFixed(0)
+
+        progressbar.setAttribute("style", "width:" + percentage + "%")
+        progressbar.textContent = percentage + "%"
+
+        if(percentage == 100)
+        {
+            nextBtnID.classList.remove("disabled")
+        }
+
+        // console.log(count)
+
+    }
+
+    function checkClassButton(num)
+    {
+        classButtonCheck[num] = true
+        setProgressBarValue()
+
+    }
+
+    
+
+    function CheckIdButton()
+    {
+        iDButtonCheck = true
+        setProgressBarValue()
+    }
+
+    function CheckIdQueryselector()
+    {
+        querySelectorButtonCheck = true
+        setProgressBarValue()
+    }
+
+    function CheckTagNameButton(num)
+    {
+        tagNameButtonCheck[num] = true
+        setProgressBarValue()
+    }
+
+    
+</script>
+{% endblock script %}
