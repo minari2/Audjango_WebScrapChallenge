@@ -142,12 +142,24 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
         if (request.done || request.IsMultipart()) {
             response := server.Handle(request)
+            ; OutputDebug,1
             if (response.status) {
+                ; OutputDebug,2
                 socket.SetData(response.Generate())
             }
         }
+        ; OutputDebug,3
+
+        ; if (request.IsMultipart())
+        ; {
+        ;     OutputDebug, multipart
+        ; }
+        ; else
+        ;     OutputDebug, not multipart
+
         if (socket.TrySend()) {
             if (!request.IsMultipart() || request.done) {
+                ; OutputDebug,4
                 socket.Close()
             }
         }    
@@ -160,6 +172,7 @@ class HttpRequest
     __New(data = "") {
         if (data)
             this.Parse(data)
+            this.isitmultipart := false
     }
 
     GetPathInfo(top) {
@@ -194,6 +207,18 @@ class HttpRequest
         headers := StrSplit(data[1], "`n")
         this.body := LTrim(data[2], "`n")
 
+        if (this.body != "" and data.MaxIndex() > 2)
+        {
+            this.body := ""
+            for k, v in data
+            {
+                if(k=1)
+                    continue
+                ; OutputDebug,% v
+                this.body .= v
+            }
+        }
+
         this.GetPathInfo(headers.Remove(1))
         this.GetQuery()
         this.headers := {}
@@ -205,14 +230,26 @@ class HttpRequest
 
             this.headers[key] := val
         }
+
+        regexmatch(this.headers["Content-Type"], "boundary=(.*)", boundary)
+
+        if(boundary)
+        {
+            this.boundary := boundary2
+            OutputDebug, % this.boundary
+            OutputDebug, % this.body
+
+        }
     }
 
     IsMultipart() {
         length := this.headers["Content-Length"]
         expect := this.headers["Expect"]
 
+
         if (expect = "100-continue" && length > 0)
             return true
+        ; OutputDebug,% "Expect:" . expect
         return false
     }
 }

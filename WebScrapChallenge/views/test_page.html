@@ -13,3 +13,28 @@ nooowejfowjeofjo
 
 {{ aazzsd }}
 {% endblock aaaa %}
+
+{% block body %}
+
+
+
+<main>
+    <div class="container px-4 py-5">
+        <h2 class="pb-2 border-bottom">This is TestPage!</h2>
+        <h3 class="pb-2">File upload</h3>
+
+        <Form Method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="formFile" class="form-label">Default file input example</label>
+                <input class="form-control" type="file" id="formFile" name="ttt">
+            </div>
+            <div class="mb-3">
+                <label for="formFile2" class="form-label">Default file input example</label>
+                <input class="form-control" type="file" id="formFile2" name="ttt">
+            </div>
+            <button type="submit">submit</button>
+        </Form>
+        
+    </div>
+</main>
+{% endblock body %}

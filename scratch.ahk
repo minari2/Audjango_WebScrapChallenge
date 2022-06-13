@@ -1,8 +1,69 @@
+vtext = 
+(
+-----------------------------6432351878510131532453799569
+Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
+Content-Type: text/plain
+test_data_text
+asdfasdf
+
+adfs
+-----------------------------6432351878510131532453799569
+Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
+Content-Type: text/plain
+test_data_text
+-----------------------------6432351878510131532453799569--
+)
+boundary := "-----------------------------6432351878510131532453799569"
+t := StrSplit(vtext, boundary, "`n")
+; Msgbox,% t[2]
+content_collection := {}
+
+for k, content in t
+{
+    ; OutputDebug, % content
+    full_data := ""
+    content_data := StrSplit(content, "`n")
+    ; OutputDebug, % content_data[3]
+    ; OutputDebug,% content_data.MaxIndex()
+
+    if(content_data.MaxIndex() > 2)
+    {
+        Loop,% content_data.MaxIndex() -1
+        {
+            if(A_Index = 1 or A_Index = 2)
+                continue
+            ; OutputDebug, % content_data[A_Index]
+            full_data .= content_data[A_Index] . "`n"
+        }
+    }
+    else
+    {
+        full_data := content_data[4]
+    }
+
+    OutputDebug,% full_data
+
+    content_collection.push({"Content-Disposition":content_data[1]
+        , "Content-Type":content_data[2], "full_data":full_data})
+
+}
+
+return
+
+
+text := "multipart/form-data; boundary=---------------------------319170419021049609841763391870"
+tt := regexmatch(text, "(boundary=)(.*)", results)
+; Msgbox,% results
+Msgbox,% results2
+; Msgbox,% tt
+
+return
+
 
 TestString := "me  This is a test apple."
 
-regexmatch(teststring, "(me)(.*?)(?=apple)", results)
-msgbox, % results2
+; regexmatch(teststring, "(me)(.*?)(?=apple)", results)
+; msgbox, % results2
 
 return
 
