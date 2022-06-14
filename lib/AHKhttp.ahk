@@ -142,24 +142,43 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
         if (request.done || request.IsMultipart()) {
             response := server.Handle(request)
-            ; OutputDebug,1
             if (response.status) {
-                ; OutputDebug,2
                 socket.SetData(response.Generate())
             }
         }
-        ; OutputDebug,3
 
-        ; if (request.IsMultipart())
-        ; {
-        ;     OutputDebug, multipart
-        ; }
-        ; else
-        ;     OutputDebug, not multipart
+        if (request.done || request.boundary)
+        {
+            response := server.Handle(request)
+            if (response.status) {
+
+                ; info := {"name" : _["name"]
+                ; , "filename" : _["filename"]
+                ; , "Content-Type" : Content_Type_line[2]
+                ; , "data" : data}
+                OutputDebug, % this.dataCollection.MaxIndex()
+                ; OutputDebug, % request.boundary
+                for k, fileData in this.dataCollection
+                {
+                    OutputDebug, % k . "asdfa"
+                    if(not fileData["Content-Type"])
+                        continue
+
+                    OutputDebug,% "asdfasdfasd" . fileData["filename"]
+
+                    data := NumGet(ComObjValue(fileData["data"]) + 8 + A_PtrSize, "UInt")
+                    size := fileData["data"].MaxIndex() + 1
+                    f := FileOpen(fileData["filename"], "w")
+                    f.RawWrite(data + 0, size)
+                    f.Close()
+                }
+                
+                socket.SetData(response.Generate())
+            }
+        }
 
         if (socket.TrySend()) {
             if (!request.IsMultipart() || request.done) {
-                ; OutputDebug,4
                 socket.Close()
             }
         }    
@@ -203,6 +222,7 @@ class HttpRequest
 
     Parse(data) {
         this.raw := data
+        ; OutputDebug, % this.raw
         data := StrSplit(data, "`n`r")
         headers := StrSplit(data[1], "`n")
         this.body := LTrim(data[2], "`n")
@@ -232,14 +252,57 @@ class HttpRequest
         }
 
         regexmatch(this.headers["Content-Type"], "boundary=(.*)", boundary)
+        ; OutputDebug, % boundary1
 
         if(boundary)
         {
-            this.boundary := boundary2
-            OutputDebug, % this.boundary
-            OutputDebug, % this.body
+            this.boundary := boundary1
+            this.dataCollection := this.CollectData(this.body, this.boundary)
+            ; OutputDebug, % this.boundary
+            ; OutputDebug, % this.body
 
         }
+    }
+
+    CollectData(body, boundary) {
+        t := StrSplit(body, "--" . boundary, "`n")
+
+        data_collection := []
+
+        for k, content in t
+        {
+            content := StrReplace(content, "`n", "", , 1)
+            OutputDebug, % content
+
+            content_data := StrSplit(content, "`n")
+            if(StrLen(content_data[1]) < 4)
+            {
+                continue
+            }
+
+            Content_disposition_length := StrLen(content_data[1])
+            aa := regexmatch(content_data[1]
+                , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
+            
+            if(not _["name"])
+                aa := regexmatch(content_data[1]
+                , "O)name=""(?<name>.*)""", _)
+
+            Content_Type_length := StrLen(content_data[2])
+            c_length := Content_disposition_length + Content_Type_length + 3
+            data := SubStr(content, c_length, StrLen(content) - c_length + 1)
+
+            Disposition := StrSplit(content_data[1], ":")
+            Content_Type_line := StrSplit(content_data[2], ": ")
+
+            ; OutputDebug, % _["filename"] . ":`n" . _["name"] . "`nk:" . k . "()" . StrLen(content_data[1])
+            info := {"name" : _["name"]
+                , "filename" : _["filename"]
+                , "Content-Type" : Content_Type_line[2]
+                , "data" : data}
+            data_collection.push(info)
+        }
+        return data_collection
     }
 
     IsMultipart() {

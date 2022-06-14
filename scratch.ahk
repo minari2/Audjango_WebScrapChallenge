@@ -1,3 +1,9 @@
+; ; Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
+; tt := "Content-Disposition: form-data; name=""ttt""; filename=""testdatatext.txt"""
+; aa := regexmatch(tt, "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
+; OutputDebug, % _["filename"] . "`n" . _["name"]
+; return
+
 vtext = 
 (
 -----------------------------6432351878510131532453799569
@@ -11,41 +17,35 @@ adfs
 Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
 Content-Type: text/plain
 test_data_text
+-----------------------------6432351878510131532453799569
+Content-Disposition: form-data; name="zzz"
+테스트
 -----------------------------6432351878510131532453799569--
 )
 boundary := "-----------------------------6432351878510131532453799569"
 t := StrSplit(vtext, boundary, "`n")
-; Msgbox,% t[2]
-content_collection := {}
+
+data_collection := []
 
 for k, content in t
 {
-    ; OutputDebug, % content
-    full_data := ""
     content_data := StrSplit(content, "`n")
-    ; OutputDebug, % content_data[3]
-    ; OutputDebug,% content_data.MaxIndex()
 
-    if(content_data.MaxIndex() > 2)
-    {
-        Loop,% content_data.MaxIndex() -1
-        {
-            if(A_Index = 1 or A_Index = 2)
-                continue
-            ; OutputDebug, % content_data[A_Index]
-            full_data .= content_data[A_Index] . "`n"
-        }
-    }
-    else
-    {
-        full_data := content_data[4]
-    }
+    if(StrLen(content_data[1]) < 3)
+        continue
 
-    OutputDebug,% full_data
+    Content_disposition_length := StrLen(content_data[1])
+    Content_Type_length := StrLen(content_data[2])
+    c_length := Content_disposition_length + Content_Type_length+3
+    data := SubStr(content, c_length, StrLen(content) - c_length+1)
 
-    content_collection.push({"Content-Disposition":content_data[1]
-        , "Content-Type":content_data[2], "full_data":full_data})
+    Disposition := StrSplit(content_data[1], ":")
+    Content_Type_line := StrSplit(content_data[2], ": ")
 
+    aa := regexmatch(tt, "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
+    ; OutputDebug, % _["filename"] . "`n" . _["name"]
+    info := {"name":_["name"], "filename":_["filename"], "Content-Type":Content_Type_line[2]}
+    data_collection.push(info)
 }
 
 return
