@@ -160,10 +160,9 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
                 ; OutputDebug, % request.boundary
                 for k, fileData in this.dataCollection
                 {
-                    ; OutputDebug, % k . "asdfa"
+                    OutputDebug, % k . "asdfa"
                     if(not fileData["Content-Type"])
                         continue
-
                     ; OutputDebug,% "asdfasdfasd" . fileData["filename"]
 
                     data := NumGet(ComObjValue(fileData["data"]) + 8 + A_PtrSize, "UInt")
@@ -172,7 +171,6 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
                     f.RawWrite(data + 0, size)
                     f.Close()
                 }
-                
                 socket.SetData(response.Generate())
             }
         }
@@ -254,14 +252,14 @@ class HttpRequest
         regexmatch(this.headers["Content-Type"], "boundary=(.*)", boundary)
         ; OutputDebug, % boundary1
 
-        ; if(boundary)
-        ; {
-        ;     this.boundary := boundary1
-        ;     this.dataCollection := this.CollectData(this.body, this.boundary)
-        ;     ; OutputDebug, % this.boundary
-        ;     ; OutputDebug, % this.body
+        if(boundary)
+        {
+            this.boundary := boundary1
+            this.dataCollection := this.CollectData(this.body, this.boundary)
+            ; OutputDebug, % this.boundary
+            ; OutputDebug, % this.body
 
-        ; }
+        }
     }
 
     CollectData(body, boundary) {
@@ -290,18 +288,45 @@ class HttpRequest
 
             Content_Type_length := StrLen(content_data[2])
             c_length := Content_disposition_length + Content_Type_length + 3
-            data := SubStr(content, c_length, StrLen(content) - c_length + 1)
+            data := SubStr(content, c_length, StrLen(content) - c_length)
 
             Disposition := StrSplit(content_data[1], ":")
             Content_Type_line := StrSplit(content_data[2], ": ")
 
             ; OutputDebug, % _["filename"] . ":`n" . _["name"] . "`nk:" . k . "()" . StrLen(content_data[1])
+            ; OutputDebug,% data
             info := {"name" : _["name"]
                 , "filename" : _["filename"]
                 , "Content-Type" : Content_Type_line[2]
                 , "data" : data}
             data_collection.push(info)
         }
+        ; OutputDebug, % data_collection.MaxIndex() . "max_index"
+
+        ; not works when binary file.
+        for k, fileData in data_collection
+        {
+            if(not fileData["Content-Type"])
+                continue
+            data := fileData["data"]
+
+            loop
+            {
+                Random, random_seed, 1, 1000
+                if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . fileData["filename"])
+                {
+                    file_path := A_ScriptDir . "\temp\" . random_seed . "\" . fileData["filename"]
+                    data_collection[k]["file_path"] := file_path
+                    FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
+                    break
+                }
+            }
+            
+            f := FileOpen(file_path, "w")
+            f.Write(data)
+            f.Close()
+        }
+
         return data_collection
     }
 

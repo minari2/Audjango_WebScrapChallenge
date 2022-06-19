@@ -5,12 +5,84 @@ FileRead, form_raw, *c form_raw_data.txt
 
 ; buffer.Done() ; raw_data
 
-offset := 0x10
-text := StrGet(&form_raw + offset, "UTF-8")
+; offset := 0x10
+; text := StrGet(&form_raw + offset, "UTF-8")
+; Msgbox,% text
+; Msgbox,% StrLen(form_raw)
+
+
+
+; Loop, % VarSetCapacity(form_raw) { ; parse through each character
+; 	chr := Chr(*(&form_raw + A_Index)) ; check if character is in ASCII range
+; 	If chr ; if it is...
+; 		asc = %asc%%chr% ; then build another var
+; }
+; VarSetCapacity(bin, 0) ; empty binary variable to free memory
+; MsgBox, %asc%
+
+; find `r`n
+
+find_char := "`r`n`r`n"
+find_char_length := StrLen(find_char)
+
+
+; Msgbox,% 5//2
+
+; Msgbox,% StrGet(&form_raw, 10, "UTF-8")
+text := ""
+
+Loop,% VarSetCapacity(form_raw)-1
+{
+    if(StrGet(&form_raw + A_Index, find_char_length, "UTF-8") = find_char)
+    {
+        text := StrGet(&form_raw, A_Index, "UTF-8")
+        break
+    }
+
+}
 Msgbox,% text
-Msgbox,% StrLen(form_raw)
+
 
 return
+
+/*
+
+import email
+import pprint
+from io import StringIO
+
+request_string = 'GET / HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\nUpgrade-Insecure-Requests: 1\r\nUser-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\nAccept-Encoding: gzip, deflate, sdch\r\nAccept-Language: en-US,en;q=0.8'
+
+# pop the first line so we only process headers
+_, headers = request_string.split('\r\n', 1)
+
+# construct a message from the request string
+message = email.message_from_file(StringIO(headers))
+
+# construct a dictionary containing the headers
+headers = dict(message.items())
+
+# pretty-print the dictionary of headers
+pprint.pprint(headers, width=160)
+
+*/
+
+class RequestParser
+{
+    __New(data)
+    {
+        this.data := data
+        
+    }
+    _find_rn()
+    {
+
+    }
+    _set_prcess_header()
+    {
+
+    }
+}
 
 class Buffer
 {
