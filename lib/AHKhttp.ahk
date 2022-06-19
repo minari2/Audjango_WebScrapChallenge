@@ -156,15 +156,15 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
                 ; , "filename" : _["filename"]
                 ; , "Content-Type" : Content_Type_line[2]
                 ; , "data" : data}
-                OutputDebug, % this.dataCollection.MaxIndex()
+                ; OutputDebug, % this.dataCollection.MaxIndex()
                 ; OutputDebug, % request.boundary
                 for k, fileData in this.dataCollection
                 {
-                    OutputDebug, % k . "asdfa"
+                    ; OutputDebug, % k . "asdfa"
                     if(not fileData["Content-Type"])
                         continue
 
-                    OutputDebug,% "asdfasdfasd" . fileData["filename"]
+                    ; OutputDebug,% "asdfasdfasd" . fileData["filename"]
 
                     data := NumGet(ComObjValue(fileData["data"]) + 8 + A_PtrSize, "UInt")
                     size := fileData["data"].MaxIndex() + 1
@@ -254,14 +254,14 @@ class HttpRequest
         regexmatch(this.headers["Content-Type"], "boundary=(.*)", boundary)
         ; OutputDebug, % boundary1
 
-        if(boundary)
-        {
-            this.boundary := boundary1
-            this.dataCollection := this.CollectData(this.body, this.boundary)
-            ; OutputDebug, % this.boundary
-            ; OutputDebug, % this.body
+        ; if(boundary)
+        ; {
+        ;     this.boundary := boundary1
+        ;     this.dataCollection := this.CollectData(this.body, this.boundary)
+        ;     ; OutputDebug, % this.boundary
+        ;     ; OutputDebug, % this.body
 
-        }
+        ; }
     }
 
     CollectData(body, boundary) {
@@ -272,7 +272,7 @@ class HttpRequest
         for k, content in t
         {
             content := StrReplace(content, "`n", "", , 1)
-            OutputDebug, % content
+            ; OutputDebug, % content
 
             content_data := StrSplit(content, "`n")
             if(StrLen(content_data[1]) < 4)

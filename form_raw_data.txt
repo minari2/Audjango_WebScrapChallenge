@@ -1,0 +1,33 @@
+POST /test2 HTTP/1.1
+Host: 127.0.0.1:8000
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:101.0) Gecko/20100101 Firefox/101.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate, br
+Content-Type: multipart/form-data; boundary=---------------------------17038290032358951008704054732
+Content-Length: 543
+Origin: http://127.0.0.1:8000
+Connection: keep-alive
+Referer: http://127.0.0.1:8000/test2
+Cookie: csrftoken=kM1xnPvApZjzKIwp7Zzsu3gTBSArnB36AtSCuYuPgKCu2GjNGkcuVD2pkRdiB00R
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+
+-----------------------------17038290032358951008704054732
+Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
+Content-Type: text/plain
+
+test_data_text
+-----------------------------17038290032358951008704054732
+Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
+Content-Type: text/plain
+
+test_data_text
+-----------------------------17038290032358951008704054732
+Content-Disposition: form-data; name="zzz"
+
+sdfsdf@asdfasdf.com
+-----------------------------17038290032358951008704054732--
