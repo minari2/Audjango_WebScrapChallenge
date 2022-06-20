@@ -23,29 +23,61 @@ FileRead, form_raw, *c form_raw_data.txt
 ; find `r`n
 
 find_char := "`r`n`r`n"
-find_char_length := StrLen(find_char)
-; Msgbox,% StrGet(&form_raw, 10, "UTF-8")
+; find_char_length := StrLen(find_char)
 
 
 ; Msgbox,% 5//2
 
 text := ""
-
 boundary := "---------------------------17038290032358951008704054732"
 
-Loop,% VarSetCapacity(form_raw) - StrLen(find_char) + 1
-{
-    if(StrGet(&form_raw + A_Index, find_char_length, "UTF-8") = find_char)
-    {
-        text := StrGet(&form_raw, A_Index , "UTF-8")
-        break
-    }
+; Loop,% VarSetCapacity(form_raw)-StrLen(find_char) +1
+; {
+;     if(StrGet(&form_raw + A_Index, find_char_length, "UTF-8") = find_char)
+;     {
+;         text := StrGet(&form_raw, A_Index, "UTF-8")
+;         break
+;     }
 
-}
-Msgbox,% text
+; }
+; Msgbox,% text
 
-
+headers := find_string_from_binary(form_raw, "`r`n`r`n", found_pos)
+body := find_string_from_binary(form_raw, "--" . boundary . "`r`n", tt, found_pos)
+Msgbox,% tt
 return
+
+find_string_from_binary(raw_data, find_str, ByRef found_position=0, offset=0)
+{
+    Loop,% VarSetCapacity(raw_data) - StrLen(find_str) + 1
+    {
+        found_position := A_Index
+        if(StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8") = find_str)
+        {
+            MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
+            data := StrGet(&raw_data + offset, A_Index, "UTF-8")
+            break
+        }
+    }
+    return data
+}
+
+find_binary_data_from_body(raw_data, boundary)
+{
+    Loop,% VarSetCapacity(raw_data) - StrLen(boundary) + 1
+    {
+        found_position := A_Index
+        if(StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary)
+        {
+            ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8")
+            ; data := StrGet(&raw_data + offset, A_Index, "UTF-8")
+
+
+            break
+        }
+    }
+    return data
+}
 
 
 
