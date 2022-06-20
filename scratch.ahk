@@ -1,30 +1,6 @@
 FileRead, form_raw, *c form_raw_data.txt
-
-; buffer := new Buffer((StrLen(form_raw) * 2))
-; buffer.WriteStr(form_raw)
-
-; buffer.Done() ; raw_data
-
-; offset := 0x10
-; text := StrGet(&form_raw + offset, "UTF-8")
-; Msgbox,% text
-; Msgbox,% StrLen(form_raw)
-
-
-
-; Loop, % VarSetCapacity(form_raw) { ; parse through each character
-; 	chr := Chr(*(&form_raw + A_Index)) ; check if character is in ASCII range
-; 	If chr ; if it is...
-; 		asc = %asc%%chr% ; then build another var
-; }
-; VarSetCapacity(bin, 0) ; empty binary variable to free memory
-; MsgBox, %asc%
-
-; find `r`n
-
 find_char := "`r`n`r`n"
 ; find_char_length := StrLen(find_char)
-
 
 ; Msgbox,% 5//2
 
@@ -42,9 +18,9 @@ boundary := "---------------------------17038290032358951008704054732"
 ; }
 ; Msgbox,% text
 
-headers := find_string_from_binary(form_raw, "`r`n`r`n", found_pos)
-body := find_string_from_binary(form_raw, "--" . boundary . "`r`n", tt, found_pos)
-Msgbox,% tt
+; headers := find_string_from_binary(form_raw, "`r`n`r`n", found_pos)
+body := find_binary_data_from_body(form_raw, "--" . boundary)
+; Msgbox,% body
 return
 
 find_string_from_binary(raw_data, find_str, ByRef found_position=0, offset=0)
@@ -54,7 +30,7 @@ find_string_from_binary(raw_data, find_str, ByRef found_position=0, offset=0)
         found_position := A_Index
         if(StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8") = find_str)
         {
-            MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
+            ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
             data := StrGet(&raw_data + offset, A_Index, "UTF-8")
             break
         }
@@ -64,16 +40,33 @@ find_string_from_binary(raw_data, find_str, ByRef found_position=0, offset=0)
 
 find_binary_data_from_body(raw_data, boundary)
 {
-    Loop,% VarSetCapacity(raw_data) - StrLen(boundary) + 1
+    boundaries := []
+    data := []
+    ; Msgbox,% VarSetCapacity(raw_data) - StrLen(boundary)
+    Loop,% VarSetCapacity(raw_data) - StrLen(boundary)
     {
-        found_position := A_Index
-        if(StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary)
+        ; found_position := A_Index
+        if((StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary)
+            or (StrGet(&raw_data + A_Index, StrLen(boundary) + 2, "UTF-8") = boundary . "--"))
         {
-            ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8")
             ; data := StrGet(&raw_data + offset, A_Index, "UTF-8")
-
-
-            break
+            ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8")
+            ; Msgbox,% StrGet(&raw_data + A_Index, StrLen(boundary)+2, "UTF-8")
+            ; Msgbox,% A_Index
+            boundaries.Push(A_Index)
+            ; break
+        }
+    }
+    
+    ; boundary . "`r`n" ; insufficient
+    for k, v in boundaries
+    {
+        ; Msgbox,% v
+        if(boundaries[k+1])
+        {
+            ; Msgbox, % boundaries[k+1] - boundaries[k]
+            MSgbox,% StrGet(&raw_data + v+2+StrLen(boundary), boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4, "UTF-8")
+            data.Push(StrGet(&raw_data + v+2+StrLen(boundary), boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4, "UTF-8"))
         }
     }
     return data
