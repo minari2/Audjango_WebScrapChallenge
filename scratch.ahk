@@ -24,18 +24,20 @@ FileRead, form_raw, *c form_raw_data.txt
 
 find_char := "`r`n`r`n"
 find_char_length := StrLen(find_char)
+; Msgbox,% StrGet(&form_raw, 10, "UTF-8")
 
 
 ; Msgbox,% 5//2
 
-; Msgbox,% StrGet(&form_raw, 10, "UTF-8")
 text := ""
 
-Loop,% VarSetCapacity(form_raw)-1
+boundary := "---------------------------17038290032358951008704054732"
+
+Loop,% VarSetCapacity(form_raw) - StrLen(find_char) + 1
 {
     if(StrGet(&form_raw + A_Index, find_char_length, "UTF-8") = find_char)
     {
-        text := StrGet(&form_raw, A_Index, "UTF-8")
+        text := StrGet(&form_raw, A_Index , "UTF-8")
         break
     }
 
@@ -44,6 +46,9 @@ Msgbox,% text
 
 
 return
+
+
+
 
 /*
 
