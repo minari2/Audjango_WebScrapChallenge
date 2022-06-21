@@ -42,31 +42,22 @@ find_binary_data_from_body(raw_data, boundary)
 {
     boundaries := []
     data := []
-    ; Msgbox,% VarSetCapacity(raw_data) - StrLen(boundary)
     Loop,% VarSetCapacity(raw_data) - StrLen(boundary)
     {
-        ; found_position := A_Index
         if((StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary)
             or (StrGet(&raw_data + A_Index, StrLen(boundary) + 2, "UTF-8") = boundary . "--"))
         {
-            ; data := StrGet(&raw_data + offset, A_Index, "UTF-8")
-            ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8")
-            ; Msgbox,% StrGet(&raw_data + A_Index, StrLen(boundary)+2, "UTF-8")
-            ; Msgbox,% A_Index
             boundaries.Push(A_Index)
-            ; break
         }
     }
     
-    ; boundary . "`r`n" ; insufficient
     for k, v in boundaries
     {
-        ; Msgbox,% v
         if(boundaries[k+1])
         {
             ; Msgbox, % boundaries[k+1] - boundaries[k]
-            MSgbox,% StrGet(&raw_data + v+2+StrLen(boundary), boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4, "UTF-8")
-            data.Push(StrGet(&raw_data + v+2+StrLen(boundary), boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4, "UTF-8"))
+            content_data := StrGet(&raw_data + v + 2 + StrLen(boundary), boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4, "UTF-8")
+            data.Push(content_data)
         }
     }
     return data
