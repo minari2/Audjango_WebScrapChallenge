@@ -1,3 +1,28 @@
+/*
+tt = 
+(
+Content-Disposition: form-data; name="ttt"; filename="testdatatext.txt"
+Content-Type: text/plain
+
+test_data_text
+)
+
+aa := regexmatch(tt
+    , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
+
+if(not _["name"])
+    aa := regexmatch(tt
+    , "O)name=""(?<name>.*)""", _)
+
+aa := regexmatch(tt
+    , "O)Content-Type: (?<type>.*)`r`n`r`n", __)
+
+; Msgbox,% _["filename"]
+MSgbox,% __["type"]
+
+return
+*/
+
 FileRead, form_raw, *c form_raw_data.txt
 find_char := "`r`n`r`n"
 ; find_char_length := StrLen(find_char)
@@ -19,7 +44,7 @@ boundary := "---------------------------17038290032358951008704054732"
 ; Msgbox,% text
 
 ; headers := find_string_from_binary(form_raw, "`r`n`r`n", found_pos)
-body := find_binary_data_from_body(form_raw, "--" . boundary)
+data := find_binary_data_from_body(form_raw, "--" . boundary)
 ; Msgbox,% body
 return
 
@@ -31,12 +56,19 @@ find_string_from_binary(raw_data, find_str, ByRef found_position=0, offset=0)
         if(StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8") = find_str)
         {
             ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
+            OutputDebug, % StrGet(&raw_data , A_Index, "UTF-8")
             data := StrGet(&raw_data + offset, A_Index, "UTF-8")
             break
         }
     }
     return data
 }
+
+; VarSetCapacity(buff, size, 0)
+; ; copy var to buff
+; DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", &var, "Ptr", size)
+; ; copy buff to var
+; DllCall("RtlMoveMemory", "Ptr", &var, "Ptr", &buff, "Ptr", size)
 
 find_binary_data_from_body(raw_data, boundary)
 {
@@ -50,14 +82,74 @@ find_binary_data_from_body(raw_data, boundary)
             boundaries.Push(A_Index)
         }
     }
+
+    data_collection := []
     
     for k, v in boundaries
     {
         if(boundaries[k+1])
-        {
+        {   
+            data_array := Array()
+
             ; Msgbox, % boundaries[k+1] - boundaries[k]
-            content_data := StrGet(&raw_data + v + 2 + StrLen(boundary), boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4, "UTF-8")
-            data.Push(content_data)
+            ; content_data := StrGet(
+            ;     &raw_data + v + 2 + StrLen(boundary)
+            ;     , boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4
+            ;     , "UTF-8")
+            
+            offset := &raw_data + v + 2 + StrLen(boundary)
+            data_end := boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4
+            ; offset_data := 
+            
+            find_str := "`r`n`r`n"
+            Loop,% boundaries[k+1] - boundaries[k]
+            {
+                ; found_position := offset + A_Index
+                if(StrGet(offset + A_Index, StrLen(find_str), "UTF-8") = find_str)
+                {
+                    ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
+                    found_pos := A_Index
+                    binary_data_start := offset + found_pos + 4
+                    data_header := StrGet(offset, A_Index, "UTF-8")
+                    ; MSgbox,% v + 2 + StrLen(boundary) + found_pos + 4
+                    ; MSgbox,% data_header
+                    aa := regexmatch(data_header
+                        , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
+                    
+                    if(not _["name"])
+                        aa := regexmatch(data_header
+                        , "O)name=""(?<name>.*)""", _)
+
+                    aa := regexmatch(data_header
+                        , "O)Content-Type: (?<type>.*)", __)
+                    break
+                }
+            }
+
+            data_size := (boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4) - found_pos - 4
+
+            data_array["name"] := _["name"]
+            data_array["filename"] := _["filename"]
+            data_array["type"] := __["type"]
+            if(not data_array["type"])
+            {
+                data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
+            }
+            else
+            {
+                VarSetCapacity(buff, data_size, 0)
+                DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", binary_data_start, "Ptr", data_size)
+                data_array["data"] := buff
+            }
+            ; Msgbox,% StrGet(binary_data_start, data_size, "UTF-8")
+
+            ; copy var to buff
+            ; copy buff to var
+            ; DllCall("RtlMoveMemory", "Ptr", &var, "Ptr", &buff, "Ptr", size)
+            
+            ; BinWrite(v . ".txt", buff)
+
+            data.Push(data_array)
         }
     }
     return data
@@ -317,3 +409,131 @@ for k, v in block_list
     ; Msgbox,% base1
 }
 Msgbox,% main
+
+return
+
+; Bin2Hex(h,data,res)
+; MsgBox Data = "%h%"
+Bin2Hex(ByRef h, ByRef b, n=0)      ; n bytes binary data -> stream of 2-digit hex
+{                                   ; n = 0: all (SetCapacity can be larger than used!)
+   format = %A_FormatInteger%       ; save original integer format
+   SetFormat Integer, Hex           ; for converting bytes to hex
+
+   m := VarSetCapacity(b)
+   If (n < 1 or n > m)
+       n := m
+   Address := &b
+   h =
+   Loop %n%
+   {
+      x := *Address                 ; get byte in hex
+      StringTrimLeft x, x, 2        ; remove 0x
+      x = 0%x%                      ; pad left
+      StringRight x, x, 2           ; 2 hex digits
+      h = %h%%x%
+      Address++
+   }
+   SetFormat Integer, %format%      ; restore original format
+}
+
+Hex2Bin(ByRef b, h, n=0)            ; n hex digit-pairs -> binary data
+{                                   ; n = 0: all. (Only ByRef can handle binaries)
+   m := Ceil(StrLen(h)/2)
+   If (n < 1 or n > m)
+       n := m
+   Granted := VarSetCapacity(b, n, 0)
+   IfLess Granted,%n%, {
+      ErrorLevel = Mem=%Granted%
+      Return
+   }
+   Address := &b
+   Loop %n%
+   {
+      StringLeft  x, h, 2
+      StringTrimLeft h, h, 2
+      x = 0x%x%
+      DllCall("RtlFillMemory", "UInt", Address, "UInt", 1, "UChar", x)
+      Address++
+   }
+}
+
+BinWrite(file, ByRef data, n=0, offset=0)
+{
+   ; Open file for WRITE (0x40..), OPEN_ALWAYS (4): creates only if it does not exists
+   h := DllCall("CreateFile","str",file,"Uint",0x40000000,"Uint",0,"UInt",0,"UInt",4,"Uint",0,"UInt",0)
+   IfEqual h,-1, SetEnv, ErrorLevel, -1
+   IfNotEqual ErrorLevel,0,Return,0 ; couldn't create the file
+
+   m = 0                            ; seek to offset
+   IfLess offset,0, SetEnv,m,2
+   r := DllCall("SetFilePointerEx","Uint",h,"Int64",offset,"UInt *",p,"Int",m)
+   IfEqual r,0, SetEnv, ErrorLevel, -3
+   IfNotEqual ErrorLevel,0, {
+      t = %ErrorLevel%              ; save ErrorLevel to be returned
+      DllCall("CloseHandle", "Uint", h)
+      ErrorLevel = %t%              ; return seek error
+      Return 0
+   }
+
+   m := VarSetCapacity(data)        ; get the capacity ( >= used length )
+   If (n < 1 or n > m)
+       n := m
+   result := DllCall("WriteFile","UInt",h,"Str",data,"UInt",n,"UInt *",Written,"UInt",0)
+   if (!result or Written < n)
+       ErrorLevel = -3
+   IfNotEqual ErrorLevel,0, SetEnv,t,%ErrorLevel%
+
+   h := DllCall("CloseHandle", "Uint", h)
+   IfEqual h,-1, SetEnv, ErrorLevel, -2
+   IfNotEqual t,,SetEnv, ErrorLevel, %t%-%ErrorLevel%
+
+   Return Written
+}
+
+/* ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; BinRead ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+|  - Open binary file
+|  - Read n bytes (n = 0: file size)
+|  - From offset (offset < 0: counted from end)
+|  - Close file
+|  (Binary)data (replaced) <- file[offset + 0..n-1]
+|  Return #bytes actually read
+*/ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+BinRead(file, ByRef data, n=0, offset=0)
+{
+   h := DllCall("CreateFile","Str",file,"Uint",0x80000000,"Uint",3,"UInt",0,"UInt",3,"Uint",0,"UInt",0)
+   IfEqual h,-1, SetEnv, ErrorLevel, -1
+   IfNotEqual ErrorLevel,0,Return,0 ; couldn't open the file
+
+   m = 0                            ; seek to offset
+   IfLess offset,0, SetEnv,m,2
+   r := DllCall("SetFilePointerEx","Uint",h,"Int64",offset,"UInt *",p,"Int",m)
+   IfEqual r,0, SetEnv, ErrorLevel, -3
+   IfNotEqual ErrorLevel,0, {
+      t = %ErrorLevel%              ; save ErrorLevel to be returned
+      DllCall("CloseHandle", "Uint", h)
+      ErrorLevel = %t%              ; return seek error
+      Return 0
+   }
+
+   m := DllCall("GetFileSize","UInt",h,"Int64 *",r)
+   If (n < 1 or n > m)
+       n := m
+   Granted := VarSetCapacity(data, n, 0)
+   IfLess Granted,%n%, {
+      ErrorLevel = Mem=%Granted%
+      Return 0
+   }
+
+   result := DllCall("ReadFile","UInt",h,"Str",data,"UInt",n,"UInt *",Read,"UInt",0)
+
+   if (!result or Read < n)
+       t = -3
+   IfNotEqual ErrorLevel,0, SetEnv,t,%ErrorLevel%
+
+   h := DllCall("CloseHandle", "Uint", h)
+   IfEqual h,-1, SetEnv, ErrorLevel, -2
+   IfNotEqual t,,SetEnv, ErrorLevel, %t%-%ErrorLevel%
+
+   Return Read
+}

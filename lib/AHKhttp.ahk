@@ -124,7 +124,7 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             request := socket.request
         } else {
             ; Parse new request
-            request := new HttpRequest(text)
+            request := new HttpRequest(text, bData)
 
             length := request.headers["Content-Length"]
             request.bytesLeft := length + 0
@@ -151,26 +151,6 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
         {
             response := server.Handle(request)
             if (response.status) {
-
-                ; info := {"name" : _["name"]
-                ; , "filename" : _["filename"]
-                ; , "Content-Type" : Content_Type_line[2]
-                ; , "data" : data}
-                ; OutputDebug, % this.dataCollection.MaxIndex()
-                ; OutputDebug, % request.boundary
-                for k, fileData in this.dataCollection
-                {
-                    OutputDebug, % k . "asdfa"
-                    if(not fileData["Content-Type"])
-                        continue
-                    ; OutputDebug,% "asdfasdfasd" . fileData["filename"]
-
-                    data := NumGet(ComObjValue(fileData["data"]) + 8 + A_PtrSize, "UInt")
-                    size := fileData["data"].MaxIndex() + 1
-                    f := FileOpen(fileData["filename"], "w")
-                    f.RawWrite(data + 0, size)
-                    f.Close()
-                }
                 socket.SetData(response.Generate())
             }
         }
@@ -186,10 +166,12 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
 class HttpRequest
 {
-    __New(data = "") {
+    __New(data = "", bData = "") {
         if (data)
-            this.Parse(data)
+            ; OutputDebug, % data
+            this.bData := bData
             this.isitmultipart := false
+            this.Parse(data)
     }
 
     GetPathInfo(top) {
@@ -225,6 +207,9 @@ class HttpRequest
         headers := StrSplit(data[1], "`n")
         this.body := LTrim(data[2], "`n")
 
+        this.headers_raw := data[1]
+        this.headers_length := StrLen(data[1])
+
         if (this.body != "" and data.MaxIndex() > 2)
         {
             this.body := ""
@@ -255,12 +240,137 @@ class HttpRequest
         if(boundary)
         {
             this.boundary := boundary1
-            this.dataCollection := this.CollectData(this.body, this.boundary)
+            ; this.dataCollection := this.CollectData(this.body, this.boundary)
             ; OutputDebug, % this.boundary
             ; OutputDebug, % this.body
+            this.find_binary_data_from_body(this.bdata, "--" . boundary1)
 
         }
     }
+
+    find_binary_data_from_body(raw_data, boundary)
+    {
+        boundaries := []
+        data := []
+        ; OutputDebug, % VarSetCapacity(raw_data)
+        ; Loop,% VarSetCapacity(raw_data) - StrLen(boundary)
+        OutputDebug, % this.headers_raw
+        ; OutputDebug, % this.headers_length
+        ; OutputDebug, % this.headers["Content-Length"]
+
+        ; VarSetCapacity(buff, data_size, 0)
+        ; DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", &raw_data+this.headers_length, "Ptr", this.headers["Content-Length"])
+
+        size := this.headers["Content-Length"] + this.headers_length
+
+        Loop,% this.headers["Content-Length"] + this.headers_length - StrLen(boundary)
+        {
+            tt := A_Index
+            try
+            {
+                if((StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary))
+                    ; or (StrGet(&raw_data + A_Index, StrLen(boundary) + 2, "UTF-8") = boundary . "--")
+                {
+                    ; OutputDebug, % StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8")
+                    OutputDebug, % "boundaries: " . A_Index
+                    boundaries.Push(A_Index)
+                }
+                ; OutputDebug, % A_Index
+            }
+            Catch e
+            {
+                OutputDebug, % A_index . " error occurs"
+            }
+        }
+        OutputDebug, boudaries done %tt%
+
+        data_collection := []
+        
+        for k, v in boundaries
+        {
+            if(boundaries[k+1])
+            {   
+                data_array := Array()
+
+                ; Msgbox, % boundaries[k+1] - boundaries[k]
+                ; content_data := StrGet(
+                ;     &raw_data + v + 2 + StrLen(boundary)
+                ;     , boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4
+                ;     , "UTF-8")
+                
+                offset := &raw_data + v + 2 + StrLen(boundary)
+                data_end := boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4
+                ; offset_data := 
+                
+                find_str := "`r`n`r`n"
+                Loop,% boundaries[k+1] - boundaries[k]
+                {
+                    ; found_position := offset + A_Index
+                    if(StrGet(offset + A_Index, StrLen(find_str), "UTF-8") = find_str)
+                    {
+                        ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
+                        found_pos := A_Index
+                        binary_data_start := offset + found_pos + 4
+                        data_header := StrGet(offset, A_Index, "UTF-8")
+                        ; MSgbox,% v + 2 + StrLen(boundary) + found_pos + 4
+                        ; MSgbox,% data_header
+                        aa := regexmatch(data_header
+                            , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
+                        
+                        if(not _["name"])
+                            aa := regexmatch(data_header
+                            , "O)name=""(?<name>.*)""", _)
+
+                        aa := regexmatch(data_header
+                            , "O)Content-Type: (?<type>.*)", __)
+                        break
+                    }
+                }
+
+                data_size := (boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4) - found_pos - 4
+
+                data_array["name"] := _["name"]
+                data_array["filename"] := _["filename"]
+                
+                data_array["type"] := __["type"]
+                if(not data_array["type"])
+                {
+                    data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
+                }
+                else
+                {
+                    VarSetCapacity(buff, data_size, 0)
+                    DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", binary_data_start, "Ptr", data_size)
+                    data_array["data"] := buff
+                    
+                    loop ; save file
+                    {
+                        Random, random_seed, 1, 1000
+                        if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"])
+                        {
+                            file_path := A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"]
+                            data_array["file_path"] := file_path
+                            FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
+                            BinWrite(file_path, buff)
+                            break
+                        }
+                    }
+
+                }
+                ; Msgbox,% StrGet(binary_data_start, data_size, "UTF-8")
+
+                ; copy var to buff
+                ; copy buff to var
+                ; DllCall("RtlMoveMemory", "Ptr", &var, "Ptr", &buff, "Ptr", size)
+                
+                ; BinWrite(v . ".txt", buff)
+
+                data.Push(data_array)
+            }
+        }
+        return data
+    }
+    
 
     CollectData(body, boundary) {
         t := StrSplit(body, "--" . boundary, "`n")
@@ -482,4 +592,37 @@ class Buffer
     Done() {
         this.SetCapacity("buffer", this.length)
     }
+}
+
+BinWrite(file, ByRef data, n=0, offset=0)
+{
+   ; Open file for WRITE (0x40..), OPEN_ALWAYS (4): creates only if it does not exists
+   h := DllCall("CreateFile","str",file,"Uint",0x40000000,"Uint",0,"UInt",0,"UInt",4,"Uint",0,"UInt",0)
+   IfEqual h,-1, SetEnv, ErrorLevel, -1
+   IfNotEqual ErrorLevel,0,Return,0 ; couldn't create the file
+
+   m = 0                            ; seek to offset
+   IfLess offset,0, SetEnv,m,2
+   r := DllCall("SetFilePointerEx","Uint",h,"Int64",offset,"UInt *",p,"Int",m)
+   IfEqual r,0, SetEnv, ErrorLevel, -3
+   IfNotEqual ErrorLevel,0, {
+      t = %ErrorLevel%              ; save ErrorLevel to be returned
+      DllCall("CloseHandle", "Uint", h)
+      ErrorLevel = %t%              ; return seek error
+      Return 0
+   }
+
+   m := VarSetCapacity(data)        ; get the capacity ( >= used length )
+   If (n < 1 or n > m)
+       n := m
+   result := DllCall("WriteFile","UInt",h,"Str",data,"UInt",n,"UInt *",Written,"UInt",0)
+   if (!result or Written < n)
+       ErrorLevel = -3
+   IfNotEqual ErrorLevel,0, SetEnv,t,%ErrorLevel%
+
+   h := DllCall("CloseHandle", "Uint", h)
+   IfEqual h,-1, SetEnv, ErrorLevel, -2
+   IfNotEqual t,,SetEnv, ErrorLevel, %t%-%ErrorLevel%
+
+   Return Written
 }
