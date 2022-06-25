@@ -6,6 +6,7 @@ SetBatchLines, -1
 #include <AHKhttp>
 #include <AHKsock>
 #include <helper>
+#include <Json>
 #Include %A_ScriptDir%\config\settings.ahk
 
 ; 

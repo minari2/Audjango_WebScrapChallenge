@@ -632,3 +632,62 @@ BinWrite(file, ByRef data, n=0, offset=0)
 
    Return Written
 }
+
+class SessionManager
+{
+    __New(value="")
+    {
+        this.sessionDir := A_ScriptDir . "\session"
+        IfNotExist,% this.sessionDir
+            FileCreateDir,% this.sessionDir
+        
+        ; Check Session
+        if(value)
+        {
+            ; check if exists session file
+            this.sessionFilePath := this.sessionDir . "\" . value
+            if(FileExist(this.sessionFilePath))
+            {
+                ; session exist
+                FileRead, sessionText, % this.sessionFilePath
+                this.sessionData := Json.Load(sessionText)
+                this.sessionID := value
+                return True
+            }
+        }
+        else
+        {
+            Return False
+        }
+    }
+
+    SaveSession(data=Array())
+    {
+        ; make session
+        ; this.sessionData := Array()
+        this.sessionData := data
+        sessionDatatxt := Json.Dump(data)
+
+        this.sessionId := this.CreateUUID()
+        this.sessionFilePath := this.sessionDir . "\" . this.sessionId
+        FileDelete, % this.sessionfilePath
+        FileAppend, %sessionDatatxt%, % this.sessionFilePath
+    }
+
+    ; sessionData {
+    ;     get {
+    ;         return this.sessionData
+    ;     }
+    ; }
+
+    CreateUUID()
+    {
+        VarSetCapacity(puuid, 16, 0)
+        if !(DllCall("rpcrt4.dll\UuidCreate", "ptr", &puuid))
+            if !(DllCall("rpcrt4.dll\UuidToString", "ptr", &puuid, "uint*", suuid))
+                return StrGet(suuid), DllCall("rpcrt4.dll\RpcStringFree", "uint*", suuid)
+        return ""
+    }
+
+    
+}
