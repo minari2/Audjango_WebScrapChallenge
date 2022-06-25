@@ -142,18 +142,20 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
         if (request.done || request.IsMultipart()) {
             response := server.Handle(request)
+            OutputDebug, This is multipart
             if (response.status) {
                 socket.SetData(response.Generate())
             }
+            OutputDebug,% request.bytesleft . ": left , Not done"
         }
 
-        if (request.done || request.boundary)
-        {
-            response := server.Handle(request)
-            if (response.status) {
-                socket.SetData(response.Generate())
-            }
-        }
+        ; if (request.done || request.boundary)
+        ; {
+        ;     response := server.Handle(request)
+        ;     if (response.status) {
+        ;         socket.SetData(response.Generate())
+        ;     }
+        ; }
 
         if (socket.TrySend()) {
             if (!request.IsMultipart() || request.done) {
