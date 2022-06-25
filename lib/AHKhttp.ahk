@@ -122,8 +122,11 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             socket.request.bytesLeft -= StrLen(text)
             socket.request.body := socket.request.body . text
             request := socket.request
+
+            OutputDebug, % bDataLength . " : left Bytes continous"
         } else {
             ; Parse new request
+            OutputDebug, % bDataLength . " : left Bytes"
             request := new HttpRequest(text, bData)
 
             length := request.headers["Content-Length"]
@@ -243,7 +246,8 @@ class HttpRequest
             ; this.dataCollection := this.CollectData(this.body, this.boundary)
             ; OutputDebug, % this.boundary
             ; OutputDebug, % this.body
-            this.find_binary_data_from_body(this.bdata, "--" . boundary1)
+
+            ; this.find_binary_data_from_body(this.bdata, "--" . boundary1)
 
         }
     }
