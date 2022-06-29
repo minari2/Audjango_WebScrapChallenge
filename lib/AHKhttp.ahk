@@ -123,10 +123,10 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             socket.request.body := socket.request.body . text
             request := socket.request
 
-            OutputDebug, % bDataLength . " : left Bytes continous"
+            ; OutputDebug, % bDataLength . " : left Bytes continous"
         } else {
             ; Parse new request
-            OutputDebug, % bDataLength . " : left Bytes"
+            ; OutputDebug, % bDataLength . " : left Bytes"
             request := new HttpRequest(text, bData)
 
             length := request.headers["Content-Length"]
@@ -149,7 +149,7 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             if (response.status) {
                 socket.SetData(response.Generate())
             }
-            OutputDebug,% request.bytesleft . ": left , Not done"
+            ; OutputDebug,% request.bytesleft . ": left , Not done"
         }
 
         ; if (request.done || request.boundary)
@@ -476,6 +476,10 @@ class HttpResponse
         for key, value in this.headers {
             headers := headers . key . ": " . value . "`r`n"
         }
+
+        ; cookie_accept_test := "Set-Cookie: nadure=Tadure`r`n" ; additional custom cookie for test
+        ; headers .= cookie_accept_test
+
         headers := headers . "`r`n"
         length := this.headers["Content-Length"]
 
@@ -661,10 +665,13 @@ class SessionManager
         }
     }
 
-    SaveSession(data=Array())
+    SaveSession(data="")
     {
         ; make session
         ; this.sessionData := Array()
+
+        if(!data)
+            data := Array()
         this.sessionData := data
         sessionDatatxt := Json.Dump(data)
 
