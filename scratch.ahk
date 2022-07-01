@@ -1,3 +1,15 @@
+cutCookie := Array()
+Cookies := "NNB=YJ2S4HQXSJTF2; NFS=2; _ga=GA1.2.1205915527.1571410902; ASID=7c38b4970000017030e2d4b20000004d"
+Cookie := StrSplit(Cookies, ";" . A_Space)
+for k, v in Cookie
+{
+    splited := StrSplit(v, "=")
+    cutCookie[splited[1]] := splited[2]
+    OutputDebug, % splited[1]
+}
+
+return
+
 /*
 tt = 
 (

@@ -130,6 +130,7 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             request := new HttpRequest(text, bData)
 
             length := request.headers["Content-Length"]
+            OutputDebug,% request.headers["Cookie"]
             request.bytesLeft := length + 0
 
             if (request.body) {
@@ -145,7 +146,7 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
         if (request.done || request.IsMultipart()) {
             response := server.Handle(request)
-            OutputDebug, This is multipart
+            ; OutputDebug, This is multipart
             if (response.status) {
                 socket.SetData(response.Generate())
             }
@@ -251,6 +252,18 @@ class HttpRequest
 
             ; this.find_binary_data_from_body(this.bdata, "--" . boundary1)
 
+        }
+    }
+
+    cut_cookie()
+    {
+        Cookies := this.headers["Cookie"]
+        for i, line in headers {
+            pos := InStr(line, ":")
+            key := SubStr(line, 1, pos - 1)
+            val := Trim(SubStr(line, pos + 1), "`n`r ")
+
+            this.headers[key] := val
         }
     }
 
