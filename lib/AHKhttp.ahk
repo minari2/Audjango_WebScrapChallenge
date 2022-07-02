@@ -121,22 +121,48 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
         ; New request or old?
         if (socket.request) {
             ; Get data and append it to the existing request body
-            socket.request.bytesLeft -= StrLen(text)
+            ; socket.request.bytesLeft -= StrLen(text)
+            socket.request.bytesLeft -= bDataLength
             socket.request.body := socket.request.body . text
+
+            oADO := ComObjCreate("ADODB.Stream")
+
+            if(StrLen(text) = bDataLength)
+            {
+                oADO.Type := 2 ; adTypeBinary , 2-> text    
+            }
+            else
+            {
+                oADO.Type := 1 ; adTypeBinary , 2-> text
+            }
+            
+            oADO.Mode := 3 ; adModeReadWrite
+            oADO.Open
+            oADO.Write(socket.request.binary_body)
+            oADO.Write(bData)
+            oADO.Position := 0
+            socket.request.binary_body := oADO.Read
+            oADO.Close
+
+            request.size += bDataLength
             request := socket.request
 
             ; OutputDebug, % bDataLength . " : left Bytes continous"
         } else {
             ; Parse new request
             ; OutputDebug, % bDataLength . " : left Bytes"
-            request := new HttpRequest(text, bData)
+            request := new HttpRequest(text, bData, bDataLength)
 
             length := request.headers["Content-Length"]
             ; OutputDebug,% request.headers["Cookie"]
             request.bytesLeft := length + 0
+            request.binary_body := bData
+
+            request.size := bDataLength
 
             if (request.body) {
-                request.bytesLeft -= StrLen(request.body)
+                ; request.bytesLeft -= StrLen(request.body)
+                request.bytesLeft -= bDataLength
             }
         }
 
@@ -146,22 +172,29 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             socket.request := request
         }
 
+
+        ; if serving file
         if (request.done || request.IsMultipart()) {
             response := server.Handle(request)
             ; OutputDebug, This is multipart
             if (response.status) {
                 socket.SetData(response.Generate())
             }
-            ; OutputDebug,% request.bytesleft . ": left , Not done"
         }
 
-        ; if (request.done || request.boundary)
-        ; {
-        ;     response := server.Handle(request)
-        ;     if (response.status) {
-        ;         socket.SetData(response.Generate())
-        ;     }
-        ; }
+        if (request.done || request.boundary)
+        {
+            ; all done
+            OutputDebug, All request done.
+
+            request.find_binary_data_from_body(request.binary_body, "--" . request.boundary, request.size)
+
+            response := server.Handle(request)
+            if (response.status) {
+                socket.SetData(response.Generate())
+            }
+        }
+
 
         if (socket.TrySend()) {
             if (!request.IsMultipart() || request.done) {
@@ -174,15 +207,15 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
 class HttpRequest
 {
-    __New(data = "", bData = "") {
+    __New(data = "", bData = "", bDataLength="") {
         if (data)
             ; OutputDebug, % data
             this.bData := bData
+            this.bDataLength := bDataLength
             this.isitmultipart := false
             this.Parse(data)
             this.cookie := this.cut_cookie(this.headers["cookie"])
             this.session := New SessionManager(this.cookie["__sessionID"])
-            this.session.beef()
     }
 
     GetPathInfo(top) {
@@ -252,10 +285,7 @@ class HttpRequest
         {
             this.boundary := boundary1
             ; this.dataCollection := this.CollectData(this.body, this.boundary)
-            ; OutputDebug, % this.boundary
-            ; OutputDebug, % this.body
-
-            ; this.find_binary_data_from_body(this.bdata, "--" . boundary1)
+            ; this.find_binary_data_from_body(this.bdata, "--" . boundary1, this.bDataLength)
 
         }
     }
@@ -275,22 +305,23 @@ class HttpRequest
         return cutCookie
     }
 
-    find_binary_data_from_body(raw_data, boundary)
+    find_binary_data_from_body(raw_data, boundary, bDataLength)
     {
         boundaries := []
         data := []
         ; OutputDebug, % VarSetCapacity(raw_data)
         ; Loop,% VarSetCapacity(raw_data) - StrLen(boundary)
-        OutputDebug, % this.headers_raw
+        ; OutputDebug, % this.headers_raw
+        ; OutputDebug, % bDataLength
         ; OutputDebug, % this.headers_length
         ; OutputDebug, % this.headers["Content-Length"]
 
         ; VarSetCapacity(buff, data_size, 0)
         ; DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", &raw_data+this.headers_length, "Ptr", this.headers["Content-Length"])
 
-        size := this.headers["Content-Length"] + this.headers_length
+        ; size := this.headers["Content-Length"] + this.headers_length
 
-        Loop,% this.headers["Content-Length"] + this.headers_length - StrLen(boundary)
+        Loop,% bDataLength - StrLen(boundary)
         {
             tt := A_Index
             try
@@ -302,7 +333,7 @@ class HttpRequest
                     OutputDebug, % "boundaries: " . A_Index
                     boundaries.Push(A_Index)
                 }
-                ; OutputDebug, % A_Index
+                ; else
             }
             Catch e
             {
@@ -339,8 +370,7 @@ class HttpRequest
                         found_pos := A_Index
                         binary_data_start := offset + found_pos + 4
                         data_header := StrGet(offset, A_Index, "UTF-8")
-                        ; MSgbox,% v + 2 + StrLen(boundary) + found_pos + 4
-                        ; MSgbox,% data_header
+                        OutputDebug, % data_header
                         aa := regexmatch(data_header
                             , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
                         
@@ -360,30 +390,33 @@ class HttpRequest
                 data_array["filename"] := _["filename"]
                 
                 data_array["type"] := __["type"]
-                if(not data_array["type"])
-                {
-                    data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
-                }
-                else
-                {
-                    VarSetCapacity(buff, data_size, 0)
-                    DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", binary_data_start, "Ptr", data_size)
-                    data_array["data"] := buff
-                    
-                    loop ; save file
-                    {
-                        Random, random_seed, 1, 1000
-                        if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"])
-                        {
-                            file_path := A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"]
-                            data_array["file_path"] := file_path
-                            FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
-                            BinWrite(file_path, buff)
-                            break
-                        }
-                    }
 
-                }
+
+                ; if(not data_array["type"])
+                ; {
+                ;     data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
+                ; }
+                ; else
+                ; {
+                ;     VarSetCapacity(buff, data_size, 0)
+                ;     DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", binary_data_start, "Ptr", data_size)
+                ;     data_array["data"] := buff
+                    
+                ;     loop ; save file
+                ;     {
+                ;         Random, random_seed, 1, 1000
+                ;         if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"])
+                ;         {
+                ;             file_path := A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"]
+                ;             data_array["file_path"] := file_path
+                ;             FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
+                ;             BinWrite(file_path, buff)
+                ;             break
+                ;         }
+                ;     }
+
+                ; }
+
                 ; Msgbox,% StrGet(binary_data_start, data_size, "UTF-8")
 
                 ; copy var to buff
