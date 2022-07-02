@@ -73,8 +73,8 @@ class HttpServer
     }
 
     Handle(ByRef request) {
-        OutputDebug, % "from handle sessioniD : " . request.session
-        response := new HttpResponse(request.session)
+        ; OutputDebug, % "from handle sessioniD : " . request.session.sessionID
+        response := new HttpResponse(request.session.sessionID)
         if (!this.paths[request.path]) {
             func := this.paths["404"]
             response.status := 404
@@ -116,6 +116,7 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
         server := HttpServer.servers[sPort]
 
         text := StrGet(&bData, "UTF-8")
+        ; OutputDebug, % "StrLen:" . StrLen(text) . "`r`nbDataLength:" . bDataLength
 
         ; New request or old?
         if (socket.request) {
@@ -181,6 +182,7 @@ class HttpRequest
             this.Parse(data)
             this.cookie := this.cut_cookie(this.headers["cookie"])
             this.session := New SessionManager(this.cookie["__sessionID"])
+            this.session.beef()
     }
 
     GetPathInfo(top) {
@@ -679,12 +681,13 @@ class SessionManager
                 FileRead, sessionText, % this.sessionFilePath
                 this.sessionData := Json.Load(sessionText)
                 this.sessionID := value
-                return value
+                return this
             }
         }
         else
         {
-            return this.SaveSession()
+            this.SaveSession()
+            return this
         }
     }
 
@@ -697,12 +700,17 @@ class SessionManager
             data := Array()
         this.sessionData := data
         sessionDatatxt := Json.Dump(data)
-
-        this.sessionId := this.CreateUUID()
+        ; OutputDebug, % "from SaveSession. " . sessionDatatxt
+        ; this.sessionId := this.CreateUUID()
         this.sessionFilePath := this.sessionDir . "\" . this.sessionId
         FileDelete, % this.sessionfilePath
         FileAppend, %sessionDatatxt%, % this.sessionFilePath
         return this.sessionId
+    }
+
+    SaveSessionData(data="")
+    {
+
     }
 
     ; sessionData {
@@ -719,6 +727,5 @@ class SessionManager
                 return StrGet(suuid), DllCall("rpcrt4.dll\RpcStringFree", "uint*", suuid)
         return ""
     }
-
     
 }

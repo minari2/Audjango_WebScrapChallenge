@@ -1,9 +1,11 @@
 #include %A_ScriptDir%\WebScrapChallenge\views.ahk
 urls := {}
 
+urls["/"] := Func("HomePage")
 urls["/applicationURLTest"] := Func("HelloWorld")
 urls["/test2"] := Func("TestPage")
-urls["/"] := Func("HomePage")
+urls["/sessionTest1"] := Func("SessionTestPage1")
+urls["/sessionTest2"] := Func("SessionTestPage2")
 
 ; Step1.
 urls["/step1/1"] := Func("Step1_Page_1")
