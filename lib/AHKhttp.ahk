@@ -73,7 +73,8 @@ class HttpServer
     }
 
     Handle(ByRef request) {
-        response := new HttpResponse()
+        OutputDebug, % "from handle sessioniD : " . request.session
+        response := new HttpResponse(request.session)
         if (!this.paths[request.path]) {
             func := this.paths["404"]
             response.status := 404
@@ -130,7 +131,7 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             request := new HttpRequest(text, bData)
 
             length := request.headers["Content-Length"]
-            OutputDebug,% request.headers["Cookie"]
+            ; OutputDebug,% request.headers["Cookie"]
             request.bytesLeft := length + 0
 
             if (request.body) {
@@ -178,6 +179,8 @@ class HttpRequest
             this.bData := bData
             this.isitmultipart := false
             this.Parse(data)
+            this.cookie := this.cut_cookie(this.headers["cookie"])
+            this.session := New SessionManager(this.cookie["__sessionID"])
     }
 
     GetPathInfo(top) {
@@ -255,16 +258,19 @@ class HttpRequest
         }
     }
 
-    cut_cookie()
+    cut_cookie(cookie_raw)
     {
-        Cookies := this.headers["Cookie"]
-        for i, line in headers {
-            pos := InStr(line, ":")
-            key := SubStr(line, 1, pos - 1)
-            val := Trim(SubStr(line, pos + 1), "`n`r ")
-
-            this.headers[key] := val
+        cutCookie := Array()
+        Cookies := cookie_raw
+        Cookie := StrSplit(Cookies, ";" . A_Space)
+        for k, v in Cookie
+        {
+            ; key     value
+            ; nadure=Tadure
+            splited := StrSplit(v, "=")
+            cutCookie[splited[1]] := splited[2]
         }
+        return cutCookie
     }
 
     find_binary_data_from_body(raw_data, boundary)
@@ -473,10 +479,11 @@ class HttpRequest
 
 class HttpResponse
 {
-    __New() {
+    __New(sessionID="") {
         this.headers := {}
         this.status := 0
         this.protocol := "HTTP/1.1"
+        this.sessionID := sessionID
 
         this.SetBodyText("")
     }
@@ -489,6 +496,8 @@ class HttpResponse
         for key, value in this.headers {
             headers := headers . key . ": " . value . "`r`n"
         }
+
+        headers .= "Set-Cookie: __sessionID=" . this.sessionID . "`r`n"
 
         ; cookie_accept_test := "Set-Cookie: nadure=Tadure`r`n" ; additional custom cookie for test
         ; headers .= cookie_accept_test
@@ -652,6 +661,7 @@ BinWrite(file, ByRef data, n=0, offset=0)
 
 class SessionManager
 {
+    ; value means sessionID
     __New(value="")
     {
         this.sessionDir := A_ScriptDir . "\session"
@@ -669,12 +679,12 @@ class SessionManager
                 FileRead, sessionText, % this.sessionFilePath
                 this.sessionData := Json.Load(sessionText)
                 this.sessionID := value
-                return True
+                return value
             }
         }
         else
         {
-            Return False
+            return this.SaveSession()
         }
     }
 
@@ -692,6 +702,7 @@ class SessionManager
         this.sessionFilePath := this.sessionDir . "\" . this.sessionId
         FileDelete, % this.sessionfilePath
         FileAppend, %sessionDatatxt%, % this.sessionFilePath
+        return this.sessionId
     }
 
     ; sessionData {
