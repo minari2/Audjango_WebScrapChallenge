@@ -125,26 +125,35 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             socket.request.bytesLeft -= bDataLength
             socket.request.body := socket.request.body . text
 
-            oADO := ComObjCreate("ADODB.Stream")
+            OutputDebug, % bDataLength . "<< bDataLength, current " . socket.request.size . " total: " . socket.request.headers["Content-Length"]
 
-            if(StrLen(text) = bDataLength)
-            {
-                oADO.Type := 2 ; adTypeBinary , 2-> text    
-            }
-            else
-            {
-                oADO.Type := 1 ; adTypeBinary , 2-> text
-            }
-            
+            data_buffer := new Buffer(bDataLength)
+            OutputDebug,% "1 " . data_buffer.length
+            data_buffer.Write(&bData, bDataLength)
+            data_buffer.Done()
+            OutputDebug,% "2 " . data_buffer.length
+            OutputDebug,% "3 " . socket.request.binaryData.length
+            socket.request.binaryData.Append(data_buffer)
+            OutputDebug,% "4 " . data_buffer.length
+            socket.request.binaryData.Done()
+            OutputDebug, 5
+            /*
+            oADO := ComObjCreate("ADODB.Stream")
+            oADO.Type := 2 ; adTypeBinary , 2-> text   
+
             oADO.Mode := 3 ; adModeReadWrite
             oADO.Open
             oADO.Write(socket.request.binary_body)
+            if(socket.request.binary_body)
+                OutputDebug, "Asdfasdfasdf"
             oADO.Write(bData)
             oADO.Position := 0
             socket.request.binary_body := oADO.Read
             oADO.Close
 
-            request.size += bDataLength
+            socket.request.size += bDataLength
+            */
+            ; OutputDebug, % bDataLength
             request := socket.request
 
             ; OutputDebug, % bDataLength . " : left Bytes continous"
@@ -154,11 +163,15 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             request := new HttpRequest(text, bData, bDataLength)
 
             length := request.headers["Content-Length"]
-            ; OutputDebug,% request.headers["Cookie"]
             request.bytesLeft := length + 0
-            request.binary_body := bData
-
+            ; request.binary_body := bData
             request.size := bDataLength
+
+            request.binaryData := new Buffer(bDataLength)
+            OutputDebug,% "new bina " . request.binaryData.length
+            request.binaryData.Write(&bData, bDataLength)
+            OutputDebug,% "new bina2 " . request.binaryData.length
+            request.binaryData.Done()
 
             if (request.body) {
                 ; request.bytesLeft -= StrLen(request.body)
@@ -182,17 +195,20 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             }
         }
 
-        if (request.done || request.boundary)
+        if ((request.done || request.boundary) 
+            && socket.request.headers["Content-Length"]*1 <= request.size )
         {
             ; all done
             OutputDebug, All request done.
+            OutputDebug, % "last request: " . bDataLength . " request.size :" . request.size
 
-            request.find_binary_data_from_body(request.binary_body, "--" . request.boundary, request.size)
+            ; request.find_binary_data_from_body(request.binary_body, "--" . request.boundary, request.size)
 
             response := server.Handle(request)
             if (response.status) {
                 socket.SetData(response.Generate())
             }
+            OutputDebug, tttt here??
         }
 
 
