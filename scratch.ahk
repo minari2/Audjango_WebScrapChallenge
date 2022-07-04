@@ -1,15 +1,18 @@
-tt := new Buffer(8)
-; buff := tt.FromString("abcd")
-buff := Buffer.FromString("abcd")
+tt := new Buffer(4)
+buff := tt.FromString("abcd")
+; buff := Buffer.FromString("abcd")
 ; tt.Done()
+; OutputDebug, % Buffer.GetStrSize("abcd")
 OutputDebug, % tt.GetPointer()
-OutputDebug,% "1 " . StrGet(&buff, 8)
+OutputDebug,% "1 " . StrGet(buff.GetPointer(), 4, "UTF-8")
 
 dd := new Buffer(4)
-dd.FromString("efgh")
+edf := dd.FromString("efgh")
 
-tt.append(dd)
-tt.done()
+edf.append(buff)
+OutputDebug,% "2 " . StrGet(edf.GetPointer(), 8, "UTF-8")
+; edf.done()
+; OutputDebug,% "3 " . StrGet(edf.GetPointer(), 10, "UTF-8")
 ; Msgbox,% StrGet(tt, 8)
 
 Return
