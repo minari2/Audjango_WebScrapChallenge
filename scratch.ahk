@@ -1,15 +1,30 @@
-tt := new Buffer(4)
-buff := tt.FromString("abcd")
+
 ; buff := Buffer.FromString("abcd")
 ; tt.Done()
 ; OutputDebug, % Buffer.GetStrSize("abcd")
-OutputDebug, % tt.GetPointer()
-OutputDebug,% "1 " . StrGet(buff.GetPointer(), 4, "UTF-8")
 
-dd := new Buffer(4)
+string := "abcd", encoding := "UTF-8"
+
+VarSetCapacity( buff, StrPut(string, encoding)
+        ; StrPut returns char count, but VarSetCapacity needs bytes.
+        * ((encoding="utf-16"||encoding="cp1200") ? 2 : 1) )
+    ; Copy or convert the string.
+StrPut(string, &buff, encoding)
+OutputDebug, % StrGet(&buff, 4, "UTF-8")
+
+
+
+; tt := new Buffer(4)
+; buff := tt.FromString("abcd")
+; OutputDebug, % tt.GetPointer()
+; OutputDebug,% "1 " . StrGet(buff.GetPointer(), 4, "UTF-8")
+
+
+dd := new Buffer(8)
 edf := dd.FromString("efgh")
 
-edf.append(buff)
+; edf.append(buff)
+DllCall("RtlMoveMemory", "uint", edf.getPointer() + 4, "uint", &buff, "uint", 4)
 OutputDebug,% "2 " . StrGet(edf.GetPointer(), 8, "UTF-8")
 ; edf.done()
 ; OutputDebug,% "3 " . StrGet(edf.GetPointer(), 10, "UTF-8")

@@ -127,36 +127,24 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
             OutputDebug, % bDataLength . "<< bDataLength, current " . socket.request.size . " total: " . socket.request.headers["Content-Length"]
 
-            data_buffer := new Buffer(bDataLength)
-            OutputDebug,% "1 " . data_buffer.length
-            data_buffer.Write(&bData, bDataLength)
-            data_buffer.Done()
-            OutputDebug,% "2 " . data_buffer.length
-            OutputDebug,% "3 " . socket.request.binaryData.length
-            socket.request.binaryData.Append(data_buffer)
+            p := socket.request.binaryData.getPointer()
+            length := socket.request.size
+            OutputDebug, % "p :" . p . "`nlength: " length
+            
+            ; with memory: failed.
+            ; DllCall("RtlMoveMemory", "uint", p + length, "uint", &bData, "uint", bDataLength) ; ??
+
+            ; data middleware file
+            BinWrite("middleware", bData, , length + bDataLength)
+
             OutputDebug,% "4 " . data_buffer.length
-            socket.request.binaryData.Done()
+            ; socket.request.binaryData.Done()
             OutputDebug, 5
-            /*
-            oADO := ComObjCreate("ADODB.Stream")
-            oADO.Type := 2 ; adTypeBinary , 2-> text   
-
-            oADO.Mode := 3 ; adModeReadWrite
-            oADO.Open
-            oADO.Write(socket.request.binary_body)
-            if(socket.request.binary_body)
-                OutputDebug, "Asdfasdfasdf"
-            oADO.Write(bData)
-            oADO.Position := 0
-            socket.request.binary_body := oADO.Read
-            oADO.Close
-
             socket.request.size += bDataLength
-            */
-            ; OutputDebug, % bDataLength
+            OutputDebug, 6
+            
             request := socket.request
 
-            ; OutputDebug, % bDataLength . " : left Bytes continous"
         } else {
             ; Parse new request
             ; OutputDebug, % bDataLength . " : left Bytes"
@@ -164,14 +152,14 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
             length := request.headers["Content-Length"]
             request.bytesLeft := length + 0
-            ; request.binary_body := bData
             request.size := bDataLength
 
             request.binaryData := new Buffer(bDataLength)
-            OutputDebug,% "new bina " . request.binaryData.length
             request.binaryData.Write(&bData, bDataLength)
             OutputDebug,% "new bina2 " . request.binaryData.length
-            request.binaryData.Done()
+            ; request.binaryData.Done()
+
+            BinWrite("middleware", bData)
 
             if (request.body) {
                 ; request.bytesLeft -= StrLen(request.body)
@@ -195,14 +183,17 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
             }
         }
 
-        if ((request.done || request.boundary) 
+        if ((request.done && request.boundary) 
             && socket.request.headers["Content-Length"]*1 <= request.size )
         {
             ; all done
             OutputDebug, All request done.
             OutputDebug, % "last request: " . bDataLength . " request.size :" . request.size
 
-            ; request.find_binary_data_from_body(request.binary_body, "--" . request.boundary, request.size)
+            ; request.find_binary_data_from_body(request.binaryData, "--" . request.boundary, request.size)
+            binFile := FileOpen("middleware", "r")
+            binFile.RawRead(rawData, request.size)
+            request.find_binary_data_from_body(rawData, "--" . request.boundary, request.size)
 
             response := server.Handle(request)
             if (response.status) {
@@ -323,25 +314,18 @@ class HttpRequest
 
     find_binary_data_from_body(raw_data, boundary, bDataLength)
     {
+        OutputDebug, find_binary_data_from_body, length %bDataLength% Data text
+        
         boundaries := []
         data := []
-        ; OutputDebug, % VarSetCapacity(raw_data)
-        ; Loop,% VarSetCapacity(raw_data) - StrLen(boundary)
-        ; OutputDebug, % this.headers_raw
-        ; OutputDebug, % bDataLength
-        ; OutputDebug, % this.headers_length
-        ; OutputDebug, % this.headers["Content-Length"]
 
-        ; VarSetCapacity(buff, data_size, 0)
-        ; DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", &raw_data+this.headers_length, "Ptr", this.headers["Content-Length"])
-
-        ; size := this.headers["Content-Length"] + this.headers_length
-
-        Loop,% bDataLength - StrLen(boundary)
+        Loop,% bDataLength - StrLen(boundary) + 4
         {
             tt := A_Index
+            
             try
             {
+                ; OutputDebug, % StrGet(&raw_data + A_Index, StrLen(boundary))
                 if((StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary))
                     ; or (StrGet(&raw_data + A_Index, StrLen(boundary) + 2, "UTF-8") = boundary . "--")
                 {
@@ -356,25 +340,24 @@ class HttpRequest
                 OutputDebug, % A_index . " error occurs"
             }
         }
+
+        boundaries.Push(bDataLength - (StrLen(boundary) +2))
         OutputDebug, boudaries done %tt%
 
         data_collection := []
+        for k, v in boundaries
+        {
+            OutputDebug, % k . " : boundary " . v
+        }
         
         for k, v in boundaries
         {
             if(boundaries[k+1])
             {   
                 data_array := Array()
-
-                ; Msgbox, % boundaries[k+1] - boundaries[k]
-                ; content_data := StrGet(
-                ;     &raw_data + v + 2 + StrLen(boundary)
-                ;     , boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4
-                ;     , "UTF-8")
                 
-                offset := &raw_data + v + 2 + StrLen(boundary)
+                offset := &raw_data + v + 2 + StrLen(boundary) ; 2 = `r`n length
                 data_end := boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4
-                ; offset_data := 
                 
                 find_str := "`r`n`r`n"
                 Loop,% boundaries[k+1] - boundaries[k]
@@ -382,11 +365,10 @@ class HttpRequest
                     ; found_position := offset + A_Index
                     if(StrGet(offset + A_Index, StrLen(find_str), "UTF-8") = find_str)
                     {
-                        ; MSgbox,% StrGet(&raw_data + A_Index, StrLen(find_str), "UTF-8")
                         found_pos := A_Index
                         binary_data_start := offset + found_pos + 4
                         data_header := StrGet(offset, A_Index, "UTF-8")
-                        OutputDebug, % data_header
+                        ; OutputDebug, % data_header
                         aa := regexmatch(data_header
                             , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
                         
@@ -400,6 +382,8 @@ class HttpRequest
                     }
                 }
 
+                OutputDebug, % _["name"] . "`n" . _["filename"]
+
                 data_size := (boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4) - found_pos - 4
 
                 data_array["name"] := _["name"]
@@ -408,40 +392,45 @@ class HttpRequest
                 data_array["type"] := __["type"]
 
 
-                ; if(not data_array["type"])
-                ; {
-                ;     data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
-                ; }
-                ; else
-                ; {
-                ;     VarSetCapacity(buff, data_size, 0)
-                ;     DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", binary_data_start, "Ptr", data_size)
-                ;     data_array["data"] := buff
+                if(not data_array["type"])
+                {
+                    OutputDebug, "this is str type"
+                    data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
+                }
+                else
+                {
+                    OutputDebug, "this is not str type"
+                    VarSetCapacity(buff, data_size, 0)
+                    OutputDebug, aaaa
+                    DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", 
+                    , "Ptr", data_size)
+                    OutputDebug, bbbb
+                    ; data_array["data"] := buff
                     
-                ;     loop ; save file
-                ;     {
-                ;         Random, random_seed, 1, 1000
-                ;         if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"])
-                ;         {
-                ;             file_path := A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"]
-                ;             data_array["file_path"] := file_path
-                ;             FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
-                ;             BinWrite(file_path, buff)
-                ;             break
-                ;         }
-                ;     }
+                    loop ; save file
+                    {
+                        OutputDebug, "save"
+                        Random, random_seed, 1, 1000
+                        if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"])
+                        {
+                            file_path := A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"]
+                            data_array["file_path"] := file_path
+                            FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
+                            BinWrite(file_path, buff)
+                            break
+                        }
+                    }
 
-                ; }
+                }
 
-                ; Msgbox,% StrGet(binary_data_start, data_size, "UTF-8")
-
-                ; copy var to buff
-                ; copy buff to var
-                ; DllCall("RtlMoveMemory", "Ptr", &var, "Ptr", &buff, "Ptr", size)
                 
-                ; BinWrite(v . ".txt", buff)
+                BinWrite(v . ".txt", buff)
 
                 data.Push(data_array)
+            }
+            else
+            {
+                OutputDebug, % boundaries[k+1] . " why?`n " . k
             }
         }
         return data
