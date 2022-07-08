@@ -341,7 +341,10 @@ class HttpRequest
             }
         }
 
+
         boundaries.Push(bDataLength - (StrLen(boundary) +2))
+        OutputDebug, % "force insert" . bDataLength - (StrLen(boundary) +2)
+        OutputDebug, % StrGet(&raw_data + bDataLength - 10, 10, "UTF-8")
         OutputDebug, boudaries done %tt%
 
         data_collection := []
@@ -368,7 +371,7 @@ class HttpRequest
                         found_pos := A_Index
                         binary_data_start := offset + found_pos + 4
                         data_header := StrGet(offset, A_Index, "UTF-8")
-                        ; OutputDebug, % data_header
+                        OutputDebug, % "dataheader : " . data_header
                         aa := regexmatch(data_header
                             , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
                         
@@ -394,8 +397,23 @@ class HttpRequest
 
                 if(not data_array["type"])
                 {
-                    OutputDebug, "this is str type"
                     data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
+                    OutputDebug, "this is str type"
+                    OutputDebug, % data_array["data"]
+
+                    oADO := ComObjCreate("ADODB.Stream")
+
+                    oADO.Type := 1 ; adTypeBinary
+                    oADO.Mode := 3 ; adModeReadWrite
+                    oADO.Open
+                    oADO.Write(BinArr)
+
+                    oADO.Position := 0
+                    oADO.Type := 2 ; adTypeText
+                    oADO.Charset  := "UTF-8" 
+                    data_array["data"] := oADO.ReadText
+                    oADO.Close
+
                 }
                 else
                 {
@@ -424,7 +442,7 @@ class HttpRequest
                 }
 
                 
-                BinWrite(v . ".txt", buff)
+                ; BinWrite(v . ".txt", buff)
 
                 data.Push(data_array)
             }
@@ -479,6 +497,7 @@ class HttpRequest
         ; OutputDebug, % data_collection.MaxIndex() . "max_index"
 
         ; not works when binary file.
+        Random, random_seed, 1, 1000
         for k, fileData in data_collection
         {
             if(not fileData["Content-Type"])
@@ -487,7 +506,7 @@ class HttpRequest
 
             loop
             {
-                Random, random_seed, 1, 1000
+                
                 if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . fileData["filename"])
                 {
                     file_path := A_ScriptDir . "\temp\" . random_seed . "\" . fileData["filename"]
