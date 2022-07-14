@@ -156,7 +156,6 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
 
             request.binaryData := new Buffer(bDataLength)
             request.binaryData.Write(&bData, bDataLength)
-            OutputDebug,% "new bina2 " . request.binaryData.length
             ; request.binaryData.Done()
 
             BinWrite("middleware", bData)
@@ -188,8 +187,6 @@ HttpHandler(sEvent, iSocket = 0, sName = 0, sAddr = 0, sPort = 0, ByRef bData = 
         {
             ; all done
             OutputDebug, All request done.
-            OutputDebug, % "last request: " . bDataLength . " request.size :" . request.size
-
             ; request.find_binary_data_from_body(request.binaryData, "--" . request.boundary, request.size)
             binFile := FileOpen("middleware", "r")
             binFile.RawRead(rawData, request.size)
@@ -223,6 +220,7 @@ class HttpRequest
             this.Parse(data)
             this.cookie := this.cut_cookie(this.headers["cookie"])
             this.session := New SessionManager(this.cookie["__sessionID"])
+            this.FILES := ""
     }
 
     GetPathInfo(top) {
@@ -260,6 +258,8 @@ class HttpRequest
 
         this.headers_raw := data[1]
         this.headers_length := StrLen(data[1])
+        
+        
 
         if (this.body != "" and data.MaxIndex() > 2)
         {
@@ -286,14 +286,10 @@ class HttpRequest
         }
 
         regexmatch(this.headers["Content-Type"], "boundary=(.*)", boundary)
-        ; OutputDebug, % boundary1
 
         if(boundary)
         {
             this.boundary := boundary1
-            ; this.dataCollection := this.CollectData(this.body, this.boundary)
-            ; this.find_binary_data_from_body(this.bdata, "--" . boundary1, this.bDataLength)
-
         }
     }
 
@@ -319,21 +315,18 @@ class HttpRequest
         boundaries := []
         data := []
 
+        Random, random_seed, 1, 1000
+
         Loop,% bDataLength - StrLen(boundary) + 4
         {
             tt := A_Index
             
             try
             {
-                ; OutputDebug, % StrGet(&raw_data + A_Index, StrLen(boundary))
                 if((StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8") = boundary))
-                    ; or (StrGet(&raw_data + A_Index, StrLen(boundary) + 2, "UTF-8") = boundary . "--")
                 {
-                    ; OutputDebug, % StrGet(&raw_data + A_Index, StrLen(boundary), "UTF-8")
-                    OutputDebug, % "boundaries: " . A_Index
                     boundaries.Push(A_Index)
                 }
-                ; else
             }
             Catch e
             {
@@ -343,16 +336,6 @@ class HttpRequest
 
 
         boundaries.Push(bDataLength - (StrLen(boundary) +2))
-        OutputDebug, % "force insert" . bDataLength - (StrLen(boundary) +2)
-        OutputDebug, % StrGet(&raw_data + bDataLength - 10, 10, "UTF-8")
-        OutputDebug, boudaries done %tt%
-
-        data_collection := []
-        for k, v in boundaries
-        {
-            OutputDebug, % k . " : boundary " . v
-        }
-        
         for k, v in boundaries
         {
             if(boundaries[k+1])
@@ -365,13 +348,11 @@ class HttpRequest
                 find_str := "`r`n`r`n"
                 Loop,% boundaries[k+1] - boundaries[k]
                 {
-                    ; found_position := offset + A_Index
                     if(StrGet(offset + A_Index, StrLen(find_str), "UTF-8") = find_str)
                     {
                         found_pos := A_Index
                         binary_data_start := offset + found_pos + 4
                         data_header := StrGet(offset, A_Index, "UTF-8")
-                        OutputDebug, % "dataheader : " . data_header
                         aa := regexmatch(data_header
                             , "O)name=""(?<name>.*)""; filename=""(?<filename>.*)""", _)
                         
@@ -385,64 +366,51 @@ class HttpRequest
                     }
                 }
 
-                OutputDebug, % _["name"] . "`n" . _["filename"]
-
                 data_size := (boundaries[k+1] - boundaries[k] - StrLen(boundary) - 4) - found_pos - 4
 
                 data_array["name"] := _["name"]
                 data_array["filename"] := _["filename"]
-                
                 data_array["type"] := __["type"]
-
 
                 if(not data_array["type"])
                 {
                     data_array["data"] := StrGet(offset + found_pos + 4, data_size, "UTF-8")
-                    OutputDebug, "this is str type"
-                    OutputDebug, % data_array["data"]
-
-                    oADO := ComObjCreate("ADODB.Stream")
-
-                    oADO.Type := 1 ; adTypeBinary
-                    oADO.Mode := 3 ; adModeReadWrite
-                    oADO.Open
-                    oADO.Write(BinArr)
-
-                    oADO.Position := 0
-                    oADO.Type := 2 ; adTypeText
-                    oADO.Charset  := "UTF-8" 
-                    data_array["data"] := oADO.ReadText
-                    oADO.Close
-
                 }
                 else
                 {
-                    OutputDebug, "this is not str type"
                     VarSetCapacity(buff, data_size, 0)
-                    OutputDebug, aaaa
                     DllCall("RtlMoveMemory", "Ptr", &buff, "Ptr", 
                     , "Ptr", data_size)
-                    OutputDebug, bbbb
                     ; data_array["data"] := buff
-                    
+
+
                     loop ; save file
                     {
                         OutputDebug, "save"
-                        Random, random_seed, 1, 1000
+                        
                         if !fileExist(A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"])
                         {
                             file_path := A_ScriptDir . "\temp\" . random_seed . "\" . data_array["filename"]
                             data_array["file_path"] := file_path
                             FileCreateDir, % A_ScriptDir . "\temp\" . random_seed
-                            BinWrite(file_path, buff)
+
+                            if(data_array["type"] = "text/plain")
+                            {
+                                strings := StrGet(offset + found_pos + 4, data_size, "UTF-8")
+                                ; OutputDebug, % "ttttttt" . dd
+                                file := FileOpen(file_path, "w", "UTF-8")
+                                file.write(strings)
+                                file.close()
+                            }
+                            else
+                            {
+                                BinWrite(file_path, buff)
+                            }
                             break
                         }
                     }
 
                 }
-
-                
-                ; BinWrite(v . ".txt", buff)
 
                 data.Push(data_array)
             }
@@ -451,6 +419,7 @@ class HttpRequest
                 OutputDebug, % boundaries[k+1] . " why?`n " . k
             }
         }
+        this.FILES := data
         return data
     }
     
